@@ -111,6 +111,16 @@
       line-height: 1;
     }
     #settings-btn:hover { color: #aaa; border-color: #666; }
+    #state-indicator {
+      position: fixed;
+      top: 12px;
+      right: 68px;
+      width: 60px;
+      height: 60px;
+      border: 3px solid #000;
+      border-radius: 8px;
+      background: transparent;
+    }
   </style>
 </head>
 <body>
@@ -155,6 +165,7 @@
     <div>GAME OVER</div>
     <button id="restart-btn">Restart</button>
   </div>
+  <div id="state-indicator"></div>
   <button id="settings-btn" onclick="location.href='settings.html'" title="設定">⚙</button>
   <script type="module" src="js/main.js"></script>
 </body>

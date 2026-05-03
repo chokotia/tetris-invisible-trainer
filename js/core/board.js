@@ -49,4 +49,56 @@ export class Board {
   clear() {
     this._cells = this._empty();
   }
+
+  getBoardState() {
+    // 1. Flood fill to find reachable empty cells from the top
+    const reachable = Array.from({ length: this.rows }, () => Array(this.cols).fill(false));
+    const queue = [];
+    // Start from top row (y=0 is the buffer zone)
+    for (let x = 0; x < this.cols; x++) {
+      if (this.get(x, 0) === null) {
+        reachable[0][x] = true;
+        queue.push([x, 0]);
+      }
+    }
+
+    while (queue.length > 0) {
+      const [x, y] = queue.shift();
+      const ds = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+      for (const [dx, dy] of ds) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < this.cols && ny >= 0 && ny < this.rows) {
+          if (!reachable[ny][nx] && this.get(nx, ny) === null) {
+            reachable[ny][nx] = true;
+            queue.push([nx, ny]);
+          }
+        }
+      }
+    }
+
+    // 2. Analyze columns for holes and overhangs
+    let hasHole = false;
+    let hasOverhang = false;
+
+    for (let x = 0; x < this.cols; x++) {
+      let foundBlock = false;
+      for (let y = 0; y < this.rows; y++) {
+        if (this.get(x, y) !== null) {
+          foundBlock = true;
+        } else if (foundBlock) {
+          // Empty cell below a block
+          if (!reachable[y][x]) {
+            hasHole = true; // Closed space
+          } else {
+            hasOverhang = true; // Reachable hole (overhang)
+          }
+        }
+      }
+    }
+
+    if (hasHole) return 'red';
+    if (hasOverhang) return 'yellow';
+    return 'none';
+  }
 }

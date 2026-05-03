@@ -69,6 +69,7 @@ function init() {
   const counterEl    = document.getElementById('practice-counter');
   const seedEl       = document.getElementById('practice-seed');
   const mapCodeInput = document.getElementById('map-code');
+  const stateIndicator = document.getElementById('state-indicator');
   const nextCanvases = Array.from({ length: NEXT_COUNT }, (_, i) =>
     document.getElementById(`next${i}`)
   );
@@ -238,6 +239,16 @@ function init() {
       renderer.draw(game);
       scoreEl.textContent = game.score;
       linesEl.textContent = game.linesCleared;
+
+      // Update state indicator
+      const boardState = game.board.getBoardState();
+      if (boardState === 'red') {
+        stateIndicator.style.backgroundColor = 'red';
+      } else if (boardState === 'yellow') {
+        stateIndicator.style.backgroundColor = 'yellow';
+      } else {
+        stateIndicator.style.backgroundColor = 'transparent';
+      }
 
       for (let i = 0; i < NEXT_COUNT; i++)
         drawPiecePreview(nextCanvases[i], game.next[i]);
