@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Tetris</title>
+  <style>
+    :root { --block: 30px; }  /* JS の BLOCK = 30 と対応。1マスのサイズ。 */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    #wrapper {
+      display: flex;
+      flex-direction: column;
+    }
+    #game-container {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+    #practice-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 10px;
+      font-family: monospace;
+    }
+    #practice-counter {
+      color: #fff;
+      font-size: 20px;
+      min-width: 36px;
+    }
+    #map-code {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      color: #aaa;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 4px 7px;
+      border-radius: 3px;
+    }
+    #map-code::placeholder { color: #3a3a3a; }
+    #map-code:focus { outline: none; border-color: #666; }
+    #practice-seed {
+      color: #888;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    canvas#board { border: 2px solid #eee; }
+
+    /* 左パネル: HOLD上 + SCORE/LINES下 */
+    #left-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 604px; /* 20行 × 30px + border 4px */
+      color: #eee;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    canvas#hold { display: block; }
+    #score-area { display: flex; flex-direction: column; gap: 4px; }
+    #score-val, #lines-val { font-size: 18px; color: #fff; margin-bottom: 8px; }
+
+    /* 右パネル: NEXT 5個 */
+    #right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--block) * 0.8);
+      color: #eee;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    canvas.next { display: block; }
+
+    .label { color: #aaa; margin-bottom: 4px; font-weight: bold; }
+
+    #gameover {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      font-family: monospace;
+      font-size: 32px;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 16px;
+    }
+    #gameover.show { display: flex; }
+    #gameover button { font-size: 18px; padding: 8px 24px; cursor: pointer; }
+    #settings-btn {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      background: transparent;
+      border: 1px solid #333;
+      color: #555;
+      font-size: 18px;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    #settings-btn:hover { color: #aaa; border-color: #666; }
+  </style>
+</head>
+<body>
+<div id="wrapper">
+  <div id="game-container">
+
+    <div id="left-panel">
+      <div id="hold-area">
+        <div class="label">HOLD</div>
+        <canvas id="hold"></canvas>
+      </div>
+      <div id="score-area">
+        <div class="label">SCORE</div>
+        <div id="score-val">0</div>
+        <div class="label" style="margin-top:8px">LINES</div>
+        <div id="lines-val">0</div>
+      </div>
+    </div>
+
+    <div style="position: relative;">
+      <canvas id="attack-gauge" width="12" height="600" style="margin-right: 4px; border: 1px solid #444; background: #111;"></canvas>
+    </div>
+    <canvas id="board"></canvas>
+
+    <div id="right-panel">
+      <div class="label">NEXT</div>
+      <canvas class="next" id="next0"></canvas>
+      <canvas class="next" id="next1"></canvas>
+      <canvas class="next" id="next2"></canvas>
+      <canvas class="next" id="next3"></canvas>
+      <canvas class="next" id="next4"></canvas>
+    </div>
+
+  </div>
+  <div id="practice-bar">
+    <span id="practice-counter">#0</span>
+    <input id="map-code" type="text" maxlength="200" placeholder="map code (200桁)" spellcheck="false" autocomplete="off">
+    <span id="practice-seed"></span>
+  </div>
+</div>
+  <div id="gameover">
+    <div>GAME OVER</div>
+    <button id="restart-btn">Restart</button>
+  </div>
+  <button id="settings-btn" onclick="location.href='settings.html'" title="設定">⚙</button>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

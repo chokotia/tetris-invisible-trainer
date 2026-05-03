@@ -1,0 +1,255 @@
+import { Game } from './core/game.js';
+import { Input } from './input.js';
+import { Renderer } from './renderer.js';
+import { PIECES } from './core/piece.js';
+import { loadSettings, saveSettings } from './settings.js';
+import { Recorder } from './replay/recorder.js';
+import { applyMapCode } from './core/mapcode.js';
+
+const BLOCK = 30;
+const NEXT_COUNT = 5;
+const PRACTICE_KEY = 'tetris-practice';
+
+function loadPractice() {
+  try { return JSON.parse(localStorage.getItem(PRACTICE_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function savePractice(p) {
+  localStorage.setItem(PRACTICE_KEY, JSON.stringify(p));
+}
+
+function drawPiecePreview(canvas, type) {
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#333';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (!type) return;
+  const blocks = PIECES[type].blocks[0];
+  
+  // Calculate bounding box to center the piece
+  const minX = Math.min(...blocks.map(([x]) => x));
+  const maxX = Math.max(...blocks.map(([x]) => x));
+  const minY = Math.min(...blocks.map(([, y]) => y));
+  const maxY = Math.max(...blocks.map(([, y]) => y));
+  
+  const pieceWidth = (maxX - minX + 1) * BLOCK;
+  const pieceHeight = (maxY - minY + 1) * BLOCK;
+  
+  const offsetX = (canvas.width - pieceWidth) / 2 - minX * BLOCK;
+  const offsetY = (canvas.height - pieceHeight) / 2 - minY * BLOCK;
+
+  ctx.fillStyle = PIECES[type].color;
+  for (const [x, y] of blocks) {
+    ctx.fillRect(x * BLOCK + offsetX, y * BLOCK + offsetY, BLOCK, BLOCK);
+  }
+}
+
+function buildKeyMap(keys) {
+  const map = {};
+  for (const [action, code] of Object.entries(keys))
+    map[code] = action;
+  return map;
+}
+
+function init() {
+  const settings = loadSettings();
+
+  let practice = loadPractice();
+  practice.sessionSeed = (Math.random() * 0xFFFFFFFF) >>> 0;
+  practice.counter = 0;
+  savePractice(practice);
+
+  const problemSeed = () => (practice.sessionSeed + practice.counter) >>> 0;
+
+  const canvas       = document.getElementById('board');
+  const scoreEl      = document.getElementById('score-val');
+  const linesEl      = document.getElementById('lines-val');
+  const gameoverEl   = document.getElementById('gameover');
+  const holdCanvas   = document.getElementById('hold');
+  const counterEl    = document.getElementById('practice-counter');
+  const seedEl       = document.getElementById('practice-seed');
+  const mapCodeInput = document.getElementById('map-code');
+  const nextCanvases = Array.from({ length: NEXT_COUNT }, (_, i) =>
+    document.getElementById(`next${i}`)
+  );
+
+  holdCanvas.width  = BLOCK * 4;
+  holdCanvas.height = BLOCK * 2;
+  nextCanvases.forEach(c => { c.width = BLOCK * 4; c.height = BLOCK * 2; });
+
+  mapCodeInput.value = practice.mapCode || '';
+  mapCodeInput.addEventListener('input', () => {
+    practice.mapCode = mapCodeInput.value.trim();
+    savePractice(practice);
+  });
+
+  const msToFrames = ms => Math.max(0, Math.round(ms * 60 / 1000));
+
+  const REPLAY_SETTING_KEYS = [
+    'das', 'arr', 'sdf', 'lockDelay', 'dasCancel', 'socd', 'dasCarry', 
+    'attackEnabled', 'attackDifficulty', 'attackStraightness', 
+    'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax'
+  ];
+
+  let recorder;
+
+  function newGame() {
+    const seed = problemSeed();
+    const g = new Game({ 
+      seed, 
+      lockDelayFrames: msToFrames(settings.lockDelay),
+      attackEnabled: settings.attackEnabled,
+      attackDifficulty: settings.attackDifficulty,
+      attackStraightness: settings.attackStraightness,
+      attackIntervalMin: settings.attackIntervalMin,
+      attackIntervalMax: settings.attackIntervalMax,
+      attackLinesMin: settings.attackLinesMin,
+      attackLinesMax: settings.attackLinesMax,
+    });
+    if (practice.mapCode && practice.mapCode.length >= 200)
+      applyMapCode(g, practice.mapCode);
+    const replaySettings = Object.fromEntries(
+      REPLAY_SETTING_KEYS.map(k => [k, settings[k]])
+    );
+    recorder = new Recorder({ seed, mapCode: practice.mapCode || '', settings: replaySettings });
+    recorder.save();
+    return g;
+  }
+
+  let game = newGame();
+  const undoStack = [];
+  let pieceUndo = game.snapshot(); // 現在のミノが出現した瞬間のスナップショット
+
+  const pushUndo = () => {
+    undoStack.push(pieceUndo);
+    if (undoStack.length > 1000) undoStack.shift();
+  };
+
+  const input = new Input({
+    das: msToFrames(settings.das),
+    arr: msToFrames(settings.arr),
+    dasCancel: settings.dasCancel,
+    socd: settings.socd,
+  });
+  const attackCanvas = document.getElementById('attack-gauge');
+  const renderer = new Renderer(canvas, { attackCanvas });
+  renderer.invisible = !!settings.invisible;
+  let KEY_MAP = buildKeyMap(settings.keys);
+  let frame = 0;
+
+  function updatePracticeUI() {
+    counterEl.textContent = `#${practice.counter}`;
+    seedEl.textContent = `seed ${practice.sessionSeed}`;
+  }
+  updatePracticeUI();
+
+  document.addEventListener('keydown', e => {
+    const shifted = (e.shiftKey && e.code !== 'ShiftLeft' && e.code !== 'ShiftRight')
+      ? 'Shift+' + e.code : null;
+    // Shift+コードが明示的にマップされていればそちらを優先、なければ plain コードにフォールバック
+    const code = (shifted && KEY_MAP[shifted]) ? shifted : e.code;
+    const action = KEY_MAP[code];
+    if (!action) return;
+    e.preventDefault();
+    if (action === 'openReplay') {
+      window.open('replay.html', '_blank');
+      return;
+    }
+    input.keyDown(action);
+    recorder.record(frame, 'keydown', action);
+    recorder.save();
+  });
+
+  document.addEventListener('keyup', e => {
+    let recorded = false;
+    const a1 = KEY_MAP[e.code];
+    if (a1 && a1 !== 'openReplay') { input.keyUp(a1); recorder.record(frame, 'keyup', a1); recorded = true; }
+    const a2 = KEY_MAP['Shift+' + e.code];
+    if (a2 && a2 !== 'openReplay') { input.keyUp(a2); recorder.record(frame, 'keyup', a2); recorded = true; }
+    if (recorded) recorder.save();
+  });
+
+  function restart(delta = 0) {
+    practice.counter = Math.max(0, practice.counter + delta);
+    savePractice(practice);
+    game = newGame();
+    undoStack.length = 0;
+    pieceUndo = game.snapshot();
+    gameoverEl.classList.remove('show');
+    frame = 0;
+    input.reset();
+    updatePracticeUI();
+  }
+
+  document.getElementById('restart-btn').addEventListener('click', () => restart(0));
+
+  function loop() {
+    frame++;
+    input.update(frame);
+
+    if (!game.isGameOver) {
+      if (input.justPressed('left')  || input.repeat('left'))  game.moveLeft();
+      if (input.justPressed('right') || input.repeat('right')) game.moveRight();
+
+      if (input.pressed('down')) {
+        for (let i = 0; i < settings.sdf; i++) {
+          const y = game.current.y;
+          game.softDrop();
+          if (game.current.y === y) break;
+        }
+      }
+
+      if (input.justPressed('rotateCW'))  game.rotateCW();
+      if (input.justPressed('rotateCCW')) game.rotateCCW();
+      if (input.justPressed('rotate180')) game.rotate180();
+
+      if (input.justPressed('hold')) {
+        game.hold();
+        pieceUndo = game.snapshot(); // ホールドで別ミノが出たので更新（スタックには積まない）
+      }
+
+      if (input.justPressed('harddrop')) {
+        pushUndo();
+        game.hardDrop();
+        pieceUndo = game.snapshot();
+        if (!settings.dasCarry) input.resetDas();
+      }
+
+      if (input.justPressed('undo') && undoStack.length > 0) {
+        game.restore(undoStack.pop());
+        pieceUndo = game.snapshot();
+      }
+
+      if (input.justPressed('toggleInvisible')) {
+        settings.invisible = !settings.invisible;
+        renderer.invisible = settings.invisible;
+        saveSettings(settings);
+      }
+
+      if (input.justPressed('retry'))     restart(+1);
+      if (input.justPressed('retryPrev')) restart(-1);
+
+      const locked = game.tick();
+      if (locked) {
+        pushUndo();
+        pieceUndo = game.snapshot();
+        if (!settings.dasCarry) input.resetDas();
+      }
+      renderer.draw(game);
+      scoreEl.textContent = game.score;
+      linesEl.textContent = game.linesCleared;
+
+      for (let i = 0; i < NEXT_COUNT; i++)
+        drawPiecePreview(nextCanvases[i], game.next[i]);
+      drawPiecePreview(holdCanvas, game.held);
+
+      if (game.isGameOver) gameoverEl.classList.add('show');
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(loop);
+}
+
+init();

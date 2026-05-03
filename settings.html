@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>設定 - Tetris</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #111;
+      color: #ccc;
+      font-family: monospace;
+      font-size: 15px;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+    #app { width: 520px; }
+    h1 { font-size: 22px; color: #fff; margin-bottom: 32px; }
+    h2 { font-size: 14px; color: #888; text-transform: uppercase;
+         letter-spacing: 1px; margin-bottom: 16px;
+         border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; }
+    section { margin-bottom: 36px; }
+
+    .row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+    .row .lbl { flex: 1; color: #bbb; }
+    .row small { display: block; color: #555; font-size: 12px; margin-top: 2px; }
+    .row .ctrl { display: flex; align-items: center; gap: 10px; }
+
+    input[type="range"] {
+      width: 140px;
+      accent-color: #5af;
+      cursor: pointer;
+    }
+    .val { color: #fff; min-width: 90px; text-align: right; font-size: 13px; }
+
+    input[type="checkbox"] {
+      width: 18px; height: 18px;
+      accent-color: #5af;
+      cursor: pointer;
+    }
+
+    input[disabled] { opacity: 0.4; cursor: not-allowed; }
+    .row.disabled { opacity: 0.4; pointer-events: none; }
+
+    /* Key rows */
+    .key-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 12px;
+    }
+    .key-row .lbl { flex: 1; color: #bbb; }
+    .key-btn {
+      background: #1e1e1e;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 6px 0;
+      width: 130px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 14px;
+      text-align: center;
+      border-radius: 3px;
+      transition: border-color 0.15s;
+    }
+    .key-btn:hover { border-color: #5af; }
+    .key-btn.listening {
+      border-color: #fa6;
+      color: #fa6;
+      animation: blink 0.7s ease infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .conflict { color: #f55; font-size: 12px; }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 32px;
+    }
+    .btn-primary {
+      background: #5af;
+      color: #000;
+      border: none;
+      padding: 10px 24px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 15px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: #888;
+      border: 1px solid #444;
+      padding: 10px 24px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 15px;
+      border-radius: 3px;
+    }
+    .btn-secondary:hover { color: #ccc; border-color: #666; }
+    .back { color: #555; text-decoration: none; margin-left: auto; }
+    .back:hover { color: #999; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>設定</h1>
+
+  <section>
+    <h2>操作感</h2>
+
+    <div class="row">
+      <div class="lbl">DAS <small>横入力の遅延（小さいほど即発動）</small></div>
+      <div class="ctrl">
+        <input type="number" id="das" min="0" max="500" step="1" style="width:72px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        <span style="color:#888">ms</span>
+        <span class="val" id="das-val"></span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">ARR <small>連続移動の間隔（0 = 瞬時）</small></div>
+      <div class="ctrl">
+        <input type="number" id="arr" min="0" max="500" step="1" style="width:72px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        <span style="color:#888">ms</span>
+        <span class="val" id="arr-val"></span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">SDF <small>ソフトドロップ速度（大きいほど速い）</small></div>
+      <div class="ctrl">
+        <input type="range" id="sdf" min="1" max="20" step="1">
+        <span class="val" id="sdf-val"></span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">設置猶予 <small>接地後ロックされるまでの時間</small></div>
+      <div class="ctrl">
+        <input type="number" id="lockDelay" min="0" max="10000" step="50" style="width:72px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        <span style="color:#888">ms</span>
+        <span class="val" id="lockDelay-val"></span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">
+        DASキャンセル
+        <small>方向転換時に反対方向のDASをリセット</small>
+      </div>
+      <div class="ctrl">
+        <input type="checkbox" id="dasCancel">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">
+        後押し優先（SOCD）
+        <small>左右同時押し時、後から押したキーのみ発火</small>
+      </div>
+      <div class="ctrl">
+        <input type="checkbox" id="socd">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">
+        DASキャリー
+        <small>ミノ設置後も次のミノにDASチャージを引き継ぐ</small>
+      </div>
+      <div class="ctrl">
+        <input type="checkbox" id="dasCarry">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">
+        Invisibleモード
+        <small>設置済みのミノを非表示にする</small>
+      </div>
+      <div class="ctrl">
+        <input type="checkbox" id="invisible">
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>攻撃システム</h2>
+    <div class="row">
+      <div class="lbl">
+        攻撃を有効にする
+        <small>プレイ中にシード値に基づいて攻撃が来ます</small>
+      </div>
+      <div class="ctrl">
+        <input type="checkbox" id="attackEnabled">
+      </div>
+    </div>
+    <div class="row">
+      <div class="lbl">
+        攻撃の激しさ
+        <small>1 (低) 〜 5 (高)</small>
+      </div>
+      <div class="ctrl">
+        <input type="range" id="attackDifficulty" min="1" max="5" step="1">
+        <span class="val" id="attackDifficulty-val"></span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="lbl">
+        カスタム設定を使用する
+        <small>ONにすると下の詳細項目を自由に編集できます</small>
+      </div>
+      <div class="ctrl">
+        <input type="checkbox" id="attackCustom">
+      </div>
+    </div>
+    <div class="row" id="row-straightness">
+      <div class="lbl">
+        直列度
+        <small>同じ穴が続く確率（0 = 毎回バラバラ）</small>
+      </div>
+      <div class="ctrl">
+        <input type="range" id="attackStraightness" min="0" max="100" step="5">
+        <span class="val" id="attackStraightness-val"></span>
+      </div>
+    </div>
+    <div class="row" id="row-interval">
+      <div class="lbl">
+        発生間隔 (ミノ数)
+        <small>攻撃が来るまでのミノ数（最小〜最大）</small>
+      </div>
+      <div class="ctrl">
+        <input type="number" id="attackIntervalMin" min="1" max="100" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        <span style="color:#888">〜</span>
+        <input type="number" id="attackIntervalMax" min="1" max="100" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+      </div>
+    </div>
+    <div class="row" id="row-lines">
+      <div class="lbl">
+        攻撃量 (ライン数)
+        <small>1回の攻撃のライン数（最小〜最大）</small>
+      </div>
+      <div class="ctrl">
+        <input type="number" id="attackLinesMin" min="1" max="20" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        <span style="color:#888">〜</span>
+        <input type="number" id="attackLinesMax" min="1" max="20" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>キー設定</h2>
+    <div id="key-rows"></div>
+    <div id="conflict-msg" class="conflict" style="margin-top:8px;min-height:18px"></div>
+  </section>
+
+  <div class="actions">
+    <button class="btn-primary" id="save-btn">保存して戻る</button>
+    <button class="btn-secondary" id="reset-btn">デフォルトに戻す</button>
+    <a class="back" href="index.html">キャンセル</a>
+  </div>
+</div>
+
+<script type="module">
+import { DEFAULTS, loadSettings, saveSettings } from './js/settings.js';
+
+const KEY_LABELS = {
+  left:      '左移動',
+  right:     '右移動',
+  down:      'ソフトドロップ',
+  harddrop:  'ハードドロップ',
+  rotateCW:  '時計回り回転',
+  rotateCCW: '反時計回り回転',
+  rotate180: '180度回転',
+  hold:      'ホールド',
+  retry:     '次の問題 (R)',
+  retryPrev: '前の問題 (Shift+R)',
+  undo:      '１手戻る',
+  openReplay: 'リプレイを見る',
+  toggleInvisible: 'Invisibleモード切替',
+};
+
+function keyName(code) {
+  if (!code) return '(未設定)';
+  if (code.startsWith('Shift+')) return 'Shift+' + keyName(code.slice(6));
+  const m = {
+    ArrowLeft:'←', ArrowRight:'→', ArrowUp:'↑', ArrowDown:'↓',
+    ShiftLeft:'L.Shift', ShiftRight:'R.Shift',
+    ControlLeft:'L.Ctrl', ControlRight:'R.Ctrl',
+    AltLeft:'L.Alt', AltRight:'R.Alt',
+    Space:'Space', Enter:'Enter', Escape:'Esc',
+    Backspace:'BS', Tab:'Tab',
+    Backslash:'\\', IntlYen:'¥', IntlRo:'\\',
+    PageUp: 'PgUp', PageDown: 'PgDn',
+  };
+  if (m[code]) return m[code];
+  if (code.startsWith('Key'))    return code.slice(3);
+  if (code.startsWith('Digit'))  return code.slice(5);
+  if (code.startsWith('Numpad')) return 'Num' + code.slice(6);
+  return code;
+}
+
+function frameHint(ms) {
+  if (ms === 0) return '(瞬時)';
+  return `≈ ${Math.round(ms * 60 / 1000)}f`;
+}
+
+// ── 状態 ──────────────────────────────────────
+let s = loadSettings();
+let listening = null;  // currently rebinding action name
+
+// ── 数値入力（DAS/ARR/LockDelay ms） ──────────
+function initMs(id, valId, getter, setter) {
+  const inp  = document.getElementById(id);
+  const disp = document.getElementById(valId);
+  const min  = Number(inp.min) || 0;
+  const max  = Number(inp.max) || 500;
+  inp.value = getter();
+  disp.textContent = frameHint(getter());
+  inp.addEventListener('input', () => {
+    const v = Math.max(min, Math.min(max, Number(inp.value) || 0));
+    setter(v);
+    disp.textContent = frameHint(v);
+  });
+}
+
+initMs('das', 'das-val', () => s.das, v => s.das = v);
+initMs('arr', 'arr-val', () => s.arr, v => s.arr = v);
+initMs('lockDelay', 'lockDelay-val', () => s.lockDelay, v => s.lockDelay = v);
+
+// ── スライダー（SDF） ──────────────────────────
+function initSlider(id, valId, getter, setter, label) {
+  const slider = document.getElementById(id);
+  const disp   = document.getElementById(valId);
+  slider.value = getter();
+  disp.textContent = label(getter());
+  slider.addEventListener('input', () => {
+    setter(Number(slider.value));
+    disp.textContent = label(Number(slider.value));
+  });
+}
+
+initSlider('sdf', 'sdf-val',
+  () => s.sdf, v => s.sdf = v,
+  v => v >= 20 ? `${v}  (最速)` : `${v}`);
+
+const dasCheck = document.getElementById('dasCancel');
+dasCheck.checked = s.dasCancel;
+dasCheck.addEventListener('change', () => s.dasCancel = dasCheck.checked);
+
+const socdCheck = document.getElementById('socd');
+socdCheck.checked = s.socd;
+socdCheck.addEventListener('change', () => s.socd = socdCheck.checked);
+
+const dasCarryCheck = document.getElementById('dasCarry');
+dasCarryCheck.checked = s.dasCarry;
+dasCarryCheck.addEventListener('change', () => s.dasCarry = dasCarryCheck.checked);
+
+const invisibleCheck = document.getElementById('invisible');
+invisibleCheck.checked = s.invisible;
+invisibleCheck.addEventListener('change', () => s.invisible = invisibleCheck.checked);
+
+const attackEnabledCheck = document.getElementById('attackEnabled');
+attackEnabledCheck.checked = s.attackEnabled;
+attackEnabledCheck.addEventListener('change', () => s.attackEnabled = attackEnabledCheck.checked);
+
+const attackCustomCheck = document.getElementById('attackCustom');
+const attackDifficultySlider = document.getElementById('attackDifficulty');
+
+const attackPresets = {
+  1: { straightness: 90, interval: [20, 40], lines: [1, 2] },
+  2: { straightness: 70, interval: [15, 30], lines: [1, 3] },
+  3: { straightness: 50, interval: [10, 20], lines: [1, 4] },
+  4: { straightness: 30, interval: [7, 15], lines: [2, 5] },
+  5: { straightness: 10, interval: [4, 8], lines: [3, 6] },
+};
+
+function applyPreset(level) {
+  if (s.attackCustom) return;
+  const p = attackPresets[level];
+  if (!p) return;
+  
+  s.attackStraightness = p.straightness;
+  s.attackIntervalMin = p.interval[0];
+  s.attackIntervalMax = p.interval[1];
+  s.attackLinesMin = p.lines[0];
+  s.attackLinesMax = p.lines[1];
+  
+  // Update UI components
+  document.getElementById('attackStraightness').value = s.attackStraightness;
+  document.getElementById('attackStraightness-val').textContent = `${s.attackStraightness}%`;
+  document.getElementById('attackIntervalMin').value = s.attackIntervalMin;
+  document.getElementById('attackIntervalMax').value = s.attackIntervalMax;
+  document.getElementById('attackLinesMin').value = s.attackLinesMin;
+  document.getElementById('attackLinesMax').value = s.attackLinesMax;
+}
+
+function updateAttackUI() {
+  const custom = attackCustomCheck.checked;
+  s.attackCustom = custom;
+  
+  // Toggle disabled state
+  attackDifficultySlider.disabled = custom;
+  document.getElementById('attackDifficulty-val').style.opacity = custom ? 0.3 : 1;
+  
+  const detailIds = [
+    'attackStraightness', 'attackIntervalMin', 'attackIntervalMax', 
+    'attackLinesMin', 'attackLinesMax'
+  ];
+  const detailRows = ['row-straightness', 'row-interval', 'row-lines'];
+  
+  detailIds.forEach(id => document.getElementById(id).disabled = !custom);
+  detailRows.forEach(id => {
+    const el = document.getElementById(id);
+    if (custom) el.classList.remove('disabled');
+    else el.classList.add('disabled');
+  });
+
+  if (!custom) applyPreset(s.attackDifficulty);
+}
+
+attackCustomCheck.checked = s.attackCustom;
+attackCustomCheck.addEventListener('change', updateAttackUI);
+
+initSlider('attackDifficulty', 'attackDifficulty-val',
+  () => s.attackDifficulty, v => {
+    s.attackDifficulty = v;
+    applyPreset(v);
+  },
+  v => v);
+
+initSlider('attackStraightness', 'attackStraightness-val',
+  () => s.attackStraightness, v => s.attackStraightness = v,
+  v => `${v}%`);
+
+function initNum(id, getter, setter) {
+  const inp = document.getElementById(id);
+  inp.value = getter();
+  inp.addEventListener('input', () => {
+    setter(Number(inp.value) || 1);
+  });
+}
+
+initNum('attackIntervalMin', () => s.attackIntervalMin, v => s.attackIntervalMin = v);
+initNum('attackIntervalMax', () => s.attackIntervalMax, v => s.attackIntervalMax = v);
+initNum('attackLinesMin',    () => s.attackLinesMin,    v => s.attackLinesMin = v);
+initNum('attackLinesMax',    () => s.attackLinesMax,    v => s.attackLinesMax = v);
+
+// ── キー設定 ──────────────────────────────────
+const keyRowsEl = document.getElementById('key-rows');
+
+function renderKeyRows() {
+  keyRowsEl.innerHTML = '';
+  for (const action of Object.keys(KEY_LABELS)) {
+    const row = document.createElement('div');
+    row.className = 'key-row';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'lbl';
+    lbl.textContent = KEY_LABELS[action];
+
+    const btn = document.createElement('button');
+    btn.className = 'key-btn';
+    btn.id = `key-${action}`;
+    btn.textContent = keyName(s.keys[action]);
+    btn.addEventListener('click', () => startListening(action));
+
+    row.appendChild(lbl);
+    row.appendChild(btn);
+    keyRowsEl.appendChild(row);
+  }
+}
+
+function startListening(action) {
+  if (listening) stopListening(false);
+  listening = action;
+  const btn = document.getElementById(`key-${action}`);
+  btn.textContent = '--- キー入力待ち ---';
+  btn.classList.add('listening');
+}
+
+function stopListening(update = true) {
+  if (!listening) return;
+  const action = listening;
+  listening = null;
+  const btn = document.getElementById(`key-${action}`);
+  btn.classList.remove('listening');
+  if (update) btn.textContent = keyName(s.keys[action]);
+}
+
+function checkConflicts() {
+  const seen = {};
+  const conflicts = [];
+  for (const [action, code] of Object.entries(s.keys)) {
+    if (seen[code]) conflicts.push(`「${keyName(code)}」が ${KEY_LABELS[seen[code]]} と ${KEY_LABELS[action]} に重複`);
+    else seen[code] = action;
+  }
+  document.getElementById('conflict-msg').textContent = conflicts.join(' / ');
+}
+
+document.addEventListener('keydown', e => {
+  if (!listening) return;
+  e.preventDefault();
+  if (e.code === 'Escape') { stopListening(true); return; }
+  const code = (e.shiftKey && e.code !== 'ShiftLeft' && e.code !== 'ShiftRight')
+    ? 'Shift+' + e.code : e.code;
+  s.keys[listening] = code;
+  stopListening(true);
+  checkConflicts();
+});
+
+// ── ボタン ────────────────────────────────────
+document.getElementById('save-btn').addEventListener('click', () => {
+  saveSettings(s);
+  location.href = 'index.html';
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  s = structuredClone(DEFAULTS);
+  document.getElementById('das').value = s.das;
+  document.getElementById('das-val').textContent = frameHint(s.das);
+  document.getElementById('arr').value = s.arr;
+  document.getElementById('arr-val').textContent = frameHint(s.arr);
+  document.getElementById('lockDelay').value = s.lockDelay;
+  document.getElementById('lockDelay-val').textContent = frameHint(s.lockDelay);
+  document.getElementById('sdf').value = s.sdf;
+  document.getElementById('sdf-val').textContent = `${s.sdf}  (最速)`;
+  dasCheck.checked = s.dasCancel;
+  socdCheck.checked = s.socd;
+  dasCarryCheck.checked = s.dasCarry;
+  invisibleCheck.checked = s.invisible;
+  updateAttackUI();
+  renderKeyRows();
+  checkConflicts();
+});
+
+// ── 初期化 ────────────────────────────────────
+updateAttackUI();
+renderKeyRows();
+checkConflicts();
+</script>
+</body>
+</html>
