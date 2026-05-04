@@ -1,12 +1,14 @@
 const ACTION_MAP = [
   'left', 'right', 'down', 'harddrop', 
-  'rotateCW', 'rotateCCW', 'rotate180', 'hold'
+  'rotateCW', 'rotateCCW', 'rotate180', 'hold',
+  'undo', 'toggleInvisible'
 ];
 
 const SETTING_KEYS = [
   'das', 'arr', 'sdf', 'lockDelay', 'dasCancel', 'socd', 'dasCarry', 
   'attackEnabled', 'attackDifficulty', 'attackStraightness', 
-  'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax'
+  'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax',
+  'invisible'
 ];
 
 /**
@@ -17,7 +19,7 @@ export function encodeReplay(replay) {
   const buffer = [];
 
   // 1. Version (1 byte)
-  buffer.push(2); // Binary format version
+  buffer.push(3); // Binary format version 3: support 5-bit action types and more flags
 
   // 2. Seed (4 bytes)
   const seedArr = new Uint32Array([seed]);
@@ -35,6 +37,7 @@ export function encodeReplay(replay) {
   if (settings.socd)       flags |= 2;
   if (settings.dasCarry)   flags |= 4;
   if (settings.attackEnabled) flags |= 8;
+  if (settings.invisible)     flags |= 16;
   buffer.push(flags);
 
   buffer.push(settings.attackDifficulty);
@@ -57,16 +60,15 @@ export function encodeReplay(replay) {
     const actionIdx = ACTION_MAP.indexOf(e.d);
     if (actionIdx === -1) continue;
 
-    const typeAction = (actionIdx << 1) | typeIdx; // 4 bits (0-15)
+    const typeAction = (actionIdx << 1) | typeIdx; // Up to 5 bits (0-31)
 
-    // 1バイト目: [typeAction: 4bit | df_low: 4bit]
-    // dfが15以上なら追加バイトを使う
-    if (df < 15) {
-      buffer.push((typeAction << 4) | df);
+    // Version 3: [typeAction: 5bit | df_low: 3bit]
+    if (df < 7) {
+      buffer.push((typeAction << 3) | df);
     } else {
-      buffer.push((typeAction << 4) | 15);
+      buffer.push((typeAction << 3) | 7);
       // 残りのdfを可変長で書く (7bitずつ)
-      let remain = df - 15;
+      let remain = df - 7;
       while (remain >= 0x80) {
         buffer.push((remain & 0x7F) | 0x80);
         remain >>= 7;
@@ -96,8 +98,7 @@ export function decodeReplay(str) {
     let offset = 0;
     const version = uint8[offset++];
     if (version === 1) return decodeV1(uint8); // 互換性
-    if (version !== 2) throw new Error('Unsupported version');
-
+    
     const seed = new Uint32Array(uint8.slice(offset, offset + 4).buffer)[0];
     offset += 4;
 
@@ -112,6 +113,9 @@ export function decodeReplay(str) {
     settings.socd       = !!(flags & 2);
     settings.dasCarry   = !!(flags & 4);
     settings.attackEnabled = !!(flags & 8);
+    if (version >= 3) {
+      settings.invisible = !!(flags & 16);
+    }
 
     settings.attackDifficulty = uint8[offset++];
     settings.attackStraightness = uint8[offset++];
@@ -128,19 +132,36 @@ export function decodeReplay(str) {
     let currentFrame = 0;
     while (offset < uint8.length) {
       const first = uint8[offset++];
-      const typeAction = first >> 4;
-      let df = first & 0x0F;
+      let typeAction, df;
 
-      if (df === 15) {
-        let shift = 0;
-        let val = 0;
-        while (true) {
-          const byte = uint8[offset++];
-          val |= (byte & 0x7F) << shift;
-          if (!(byte & 0x80)) break;
-          shift += 7;
+      if (version === 2) {
+        // Version 2: [typeAction: 4bit | df_low: 4bit]
+        typeAction = first >> 4;
+        df = first & 0x0F;
+        if (df === 15) {
+          let shift = 0, val = 0;
+          while (true) {
+            const byte = uint8[offset++];
+            val |= (byte & 0x7F) << shift;
+            if (!(byte & 0x80)) break;
+            shift += 7;
+          }
+          df = 15 + val;
         }
-        df = 15 + val;
+      } else {
+        // Version 3: [typeAction: 5bit | df_low: 3bit]
+        typeAction = first >> 3;
+        df = first & 0x07;
+        if (df === 7) {
+          let shift = 0, val = 0;
+          while (true) {
+            const byte = uint8[offset++];
+            val |= (byte & 0x7F) << shift;
+            if (!(byte & 0x80)) break;
+            shift += 7;
+          }
+          df = 7 + val;
+        }
       }
 
       const typeIdx = typeAction & 1;

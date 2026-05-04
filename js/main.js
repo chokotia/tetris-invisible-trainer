@@ -84,7 +84,8 @@ function init() {
   const REPLAY_SETTING_KEYS = [
     'das', 'arr', 'sdf', 'lockDelay', 'dasCancel', 'socd', 'dasCarry', 
     'attackEnabled', 'attackDifficulty', 'attackStraightness', 
-    'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax'
+    'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax',
+    'invisible'
   ];
 
   let recorder;

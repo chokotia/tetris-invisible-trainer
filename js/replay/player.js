@@ -48,6 +48,7 @@ function init() {
   const seedEl       = document.getElementById('seed-val');
   const playPauseBtn = document.getElementById('play-pause-btn');
   const restartBtn   = document.getElementById('restart-btn');
+  const undoBtn      = document.getElementById('undo-btn');
   const shareBtn     = document.getElementById('share-btn');
   const speedSel     = document.getElementById('speed-sel');
 
@@ -63,6 +64,19 @@ function init() {
     }).catch(err => {
       alert('コピーに失敗しました: ' + err);
     });
+  };
+
+  undoBtn.onclick = () => {
+    if (!cachedMoveFrames) cachedMoveFrames = findMoveFrames();
+    let target = 0;
+    for (let i = cachedMoveFrames.length - 1; i >= 0; i--) {
+      // 5フレーム程度の余裕を持って戻る（同じフレームに留まるのを防ぐ）
+      if (cachedMoveFrames[i] < frame - 5) {
+        target = cachedMoveFrames[i];
+        break;
+      }
+    }
+    rewindTo(target);
   };
 
   const nextCanvases = Array.from({ length: NEXT_COUNT }, (_, i) =>
@@ -127,6 +141,7 @@ function init() {
     });
     const attackCanvas = document.getElementById('attack-gauge');
     renderer = new Renderer(canvas, { attackCanvas });
+    renderer.invisible = false; // リプレイは常に可視
     frame = 0;
     eventIdx = 0;
     paused = false;
@@ -360,6 +375,9 @@ function init() {
       e.preventDefault();
       heldDir.left = true;
       updateScrubState();
+    } else if (e.code === 'Backspace') {
+      e.preventDefault();
+      undoBtn.click();
     }
   });
 
