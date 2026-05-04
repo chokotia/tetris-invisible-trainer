@@ -4,7 +4,7 @@ import { Renderer } from '../renderer.js';
 import { PIECES } from '../core/piece.js';
 import { applyMapCode } from '../core/mapcode.js';
 import { loadLastReplay } from './recorder.js';
-import { decodeReplay, encodeReplay } from './sharing.js';
+import { decodeReplay } from './sharing.js';
 
 const BLOCK = 30;
 const NEXT_COUNT = 5;
@@ -49,22 +49,7 @@ async function init() {
   const playPauseBtn = document.getElementById('play-pause-btn');
   const restartBtn   = document.getElementById('restart-btn');
   const undoBtn      = document.getElementById('undo-btn');
-  const shareBtn     = document.getElementById('share-btn');
   const speedSel     = document.getElementById('speed-sel');
-
-  shareBtn.onclick = async () => {
-    const code = await encodeReplay(replay);
-    const url = new URL(window.location.origin + window.location.pathname);
-    url.searchParams.set('d', code);
-    
-    navigator.clipboard.writeText(url.toString()).then(() => {
-      const originalText = shareBtn.textContent;
-      shareBtn.textContent = 'コピー完了！';
-      setTimeout(() => shareBtn.textContent = originalText, 2000);
-    }).catch(err => {
-      alert('コピーに失敗しました: ' + err);
-    });
-  };
 
   undoBtn.onclick = () => {
     if (!cachedMoveFrames) cachedMoveFrames = findMoveFrames();

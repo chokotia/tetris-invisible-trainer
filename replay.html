@@ -50,11 +50,13 @@
     #controls {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 12px;
       margin-top: 14px;
       font-family: monospace;
       color: #ccc;
       font-size: 13px;
+      position: relative;
     }
     #controls button, #controls select {
       background: #1e1e1e;
@@ -68,7 +70,7 @@
     }
     #controls button:hover, #controls select:hover { border-color: #5af; }
     #frame-val { color: #fff; min-width: 100px; }
-    #seed-val { color: #555; margin-left: auto; font-size: 11px; }
+    #seed-val { color: #555; position: absolute; right: 0; font-size: 11px; }
 
     #status {
       color: #888;
@@ -113,7 +115,6 @@
     <button id="play-pause-btn">一時停止</button>
     <button id="undo-btn">1手戻る</button>
     <button id="restart-btn">最初から</button>
-    <button id="share-btn">共有URLをコピー</button>
     <label>速度
       <select id="speed-sel">
         <option value="1">1x</option>
