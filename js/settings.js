@@ -10,6 +10,7 @@ export const DEFAULTS = {
   dasCarry: true,
   invisible: true,
   autoInvisible: true,
+  replaySkipN: 0,
   attackEnabled: true,
   attackDifficulty: 3,
   attackCustom: false,

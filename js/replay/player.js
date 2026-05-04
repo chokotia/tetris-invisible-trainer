@@ -44,7 +44,6 @@ function init() {
   const playPauseBtn = document.getElementById('play-pause-btn');
   const restartBtn   = document.getElementById('restart-btn');
   const speedSel     = document.getElementById('speed-sel');
-  const skipNInput   = document.getElementById('skip-n-input');
   const nextCanvases = Array.from({ length: NEXT_COUNT }, (_, i) =>
     document.getElementById(`next${i}`)
   );
@@ -60,12 +59,6 @@ function init() {
   let undoStack, pieceUndo;
   let snapshots;  // [{frame, eventIdx, gameSnap, inputSnap, undoStack, pieceUndo}, ...]
   let cachedMoveFrames = null;
-
-  const SKIP_N_KEY = 'tetris-replay-skip-n';
-  skipNInput.value = localStorage.getItem(SKIP_N_KEY) || '0';
-  skipNInput.addEventListener('change', () => {
-    localStorage.setItem(SKIP_N_KEY, skipNInput.value);
-  });
 
   const pushUndo = () => {
     undoStack.push(pieceUndo);
@@ -123,7 +116,8 @@ function init() {
     playPauseBtn.textContent = '一時停止';
 
     // スキップ処理
-    const skipN = parseInt(skipNInput.value, 10) || 0;
+    const params = new URLSearchParams(window.location.search);
+    const skipN = parseInt(params.get('n'), 10) || 0;
     if (skipN > 0) {
       if (!cachedMoveFrames) cachedMoveFrames = findMoveFrames();
       const targetFrame = cachedMoveFrames[Math.max(0, cachedMoveFrames.length - 1 - skipN)] || 0;

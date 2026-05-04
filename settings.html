@@ -201,6 +201,17 @@
         <input type="checkbox" id="autoInvisible">
       </div>
     </div>
+
+    <div class="row">
+      <div class="lbl">
+        リプレイ開始位置
+        <small>リプレイ時、自動的に最後からn手目までスキップします</small>
+      </div>
+      <div class="ctrl">
+        <input type="number" id="replaySkipN" min="0" max="100" step="1" style="width:72px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        <span style="color:#888">手前</span>
+      </div>
+    </div>
   </section>
 
   <section>
@@ -468,6 +479,7 @@ initNum('attackIntervalMin', () => s.attackIntervalMin, v => s.attackIntervalMin
 initNum('attackIntervalMax', () => s.attackIntervalMax, v => s.attackIntervalMax = v);
 initNum('attackLinesMin',    () => s.attackLinesMin,    v => s.attackLinesMin = v);
 initNum('attackLinesMax',    () => s.attackLinesMax,    v => s.attackLinesMax = v);
+initNum('replaySkipN',       () => s.replaySkipN,       v => s.replaySkipN = v);
 
 // ── キー設定 ──────────────────────────────────
 const keyRowsEl = document.getElementById('key-rows');
@@ -553,6 +565,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   dasCarryCheck.checked = s.dasCarry;
   invisibleCheck.checked = s.invisible;
   autoInvisibleCheck.checked = s.autoInvisible;
+  document.getElementById('replaySkipN').value = s.replaySkipN;
   updateAttackUI();
   renderKeyRows();
   checkConflicts();

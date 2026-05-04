@@ -158,9 +158,10 @@ function init() {
     if (!action) return;
     e.preventDefault();
     if (action === 'openReplay') {
-      window.open('replay.html', '_blank');
+      window.open(`replay.html?n=${settings.replaySkipN}`, '_blank');
       return;
     }
+
     input.keyDown(action);
     recorder.record(frame, 'keydown', action);
     recorder.save();
