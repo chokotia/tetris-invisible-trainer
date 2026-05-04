@@ -44,6 +44,7 @@ function init() {
   const playPauseBtn = document.getElementById('play-pause-btn');
   const restartBtn   = document.getElementById('restart-btn');
   const speedSel     = document.getElementById('speed-sel');
+  const skipNInput   = document.getElementById('skip-n-input');
   const nextCanvases = Array.from({ length: NEXT_COUNT }, (_, i) =>
     document.getElementById(`next${i}`)
   );
@@ -58,6 +59,13 @@ function init() {
   let frame, eventIdx, paused, speed;
   let undoStack, pieceUndo;
   let snapshots;  // [{frame, eventIdx, gameSnap, inputSnap, undoStack, pieceUndo}, ...]
+  let cachedMoveFrames = null;
+
+  const SKIP_N_KEY = 'tetris-replay-skip-n';
+  skipNInput.value = localStorage.getItem(SKIP_N_KEY) || '0';
+  skipNInput.addEventListener('change', () => {
+    localStorage.setItem(SKIP_N_KEY, skipNInput.value);
+  });
 
   const pushUndo = () => {
     undoStack.push(pieceUndo);
@@ -113,6 +121,94 @@ function init() {
     snapshots = [];
     takeSnapshot();  // frame=0 の初期スナップショット
     playPauseBtn.textContent = '一時停止';
+
+    // スキップ処理
+    const skipN = parseInt(skipNInput.value, 10) || 0;
+    if (skipN > 0) {
+      if (!cachedMoveFrames) cachedMoveFrames = findMoveFrames();
+      const targetFrame = cachedMoveFrames[Math.max(0, cachedMoveFrames.length - 1 - skipN)] || 0;
+      if (targetFrame > 0) {
+        // targetFrame まで早送り (snapshotsを貯めながら)
+        while (frame < targetFrame) step();
+      }
+    }
+  }
+
+  function findMoveFrames() {
+    // 現在の replay データを元に、どのフレームでロック(pushUndo)が発生するかをスキャンする
+    // 重い処理に見えるが、描画を伴わないため一瞬で終わる
+    const tempGame = new Game({
+      seed,
+      lockDelayFrames: msToFrames(settings.lockDelay),
+      attackEnabled: settings.attackEnabled,
+      attackDifficulty: settings.attackDifficulty,
+      attackStraightness: settings.attackStraightness,
+      attackIntervalMin: settings.attackIntervalMin,
+      attackIntervalMax: settings.attackIntervalMax,
+      attackLinesMin: settings.attackLinesMin,
+      attackLinesMax: settings.attackLinesMax,
+    });
+    if (mapCode && mapCode.length >= 200) applyMapCode(tempGame, mapCode);
+    const tempInput = new Input({
+      das: msToFrames(settings.das),
+      arr: msToFrames(settings.arr),
+      dasCancel: settings.dasCancel,
+      socd: settings.socd,
+    });
+
+    let f = 0;
+    let ei = 0;
+    const moves = [0];
+    const tempUndoStack = [];
+    let tempPieceUndo = tempGame.snapshot();
+
+    while (f <= lastEventFrame) {
+      while (ei < events.length && events[ei].f <= f) {
+        const ev = events[ei++];
+        if (ev.t === 'keydown') tempInput.keyDown(ev.d);
+        else if (ev.t === 'keyup') tempInput.keyUp(ev.d);
+      }
+      f++;
+      tempInput.update(f);
+
+      if (!tempGame.isGameOver) {
+        if (tempInput.justPressed('left')  || tempInput.repeat('left'))  tempGame.moveLeft();
+        if (tempInput.justPressed('right') || tempInput.repeat('right')) tempGame.moveRight();
+        if (tempInput.pressed('down')) {
+          for (let i = 0; i < settings.sdf; i++) {
+            const y = tempGame.current.y;
+            tempGame.softDrop();
+            if (tempGame.current.y === y) break;
+          }
+        }
+        if (tempInput.justPressed('rotateCW'))  tempGame.rotateCW();
+        if (tempInput.justPressed('rotateCCW')) tempGame.rotateCCW();
+        if (tempInput.justPressed('rotate180')) tempGame.rotate180();
+        if (tempInput.justPressed('hold')) {
+          tempGame.hold();
+          tempPieceUndo = tempGame.snapshot();
+        }
+        if (tempInput.justPressed('undo') && tempUndoStack.length > 0) {
+          tempGame.restore(tempUndoStack.pop());
+          tempPieceUndo = tempGame.snapshot();
+          moves.pop(); // undoしたら最後の手を除去
+        }
+        if (tempInput.justPressed('harddrop')) {
+          moves.push(f);
+          tempUndoStack.push(tempPieceUndo);
+          tempGame.hardDrop();
+          tempPieceUndo = tempGame.snapshot();
+        } else {
+          const locked = tempGame.tick();
+          if (locked) {
+            moves.push(f);
+            tempUndoStack.push(tempPieceUndo);
+            tempPieceUndo = tempGame.snapshot();
+          }
+        }
+      }
+    }
+    return moves;
   }
 
   // main.js のループ本体と同じロジック (retry/retryPrev/openReplayは録画に出ない想定)
