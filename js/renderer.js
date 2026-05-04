@@ -76,7 +76,7 @@ export class Renderer {
     for (let y = 0; y < this.rows; y++) {
       for (let x = 0; x < this.cols; x++) {
         const cell = game.board.get(x, y + 1);
-        if (cell && (!this.invisible || cell === 'X')) {
+        if (cell && (!this.invisible || cell === 'X' || cell === '8')) {
           this._drawBlock(x, y, this._color(cell));
         }
       }
