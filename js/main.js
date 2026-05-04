@@ -151,8 +151,9 @@ function init() {
     if (!action) return;
     e.preventDefault();
     if (action === 'openReplay') {
-      const code = encodeReplay(recorder.data);
-      window.open(`replay.html?d=${code}&n=${settings.replaySkipN}`, '_blank');
+      encodeReplay(recorder.data).then(code => {
+        window.open(`replay.html?d=${code}&n=${settings.replaySkipN}`, '_blank');
+      });
       return;
     }
     input.keyDown(action);

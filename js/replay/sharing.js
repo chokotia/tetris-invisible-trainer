@@ -10,62 +10,49 @@ const SETTING_KEYS = [
 ];
 
 /**
- * バイナリ形式でリプレイをパックする (極限まで短くする)
+ * リプレイをバイナリ化し、さらに圧縮してエンコードする
  */
-export function encodeReplay(replay) {
+export async function encodeReplay(replay) {
   const { seed, mapCode, settings, events } = replay;
   const buffer = [];
 
-  // 1. Version (1 byte)
-  buffer.push(2); // Binary format version
+  // V4: Binary + Deflate
+  buffer.push(4); 
 
-  // 2. Seed (4 bytes)
+  // Seed (4 bytes)
   const seedArr = new Uint32Array([seed]);
   buffer.push(...new Uint8Array(seedArr.buffer));
 
-  // 3. Settings
-  // ms系は2バイト, その他は1バイト, booleanはビットフラグ
+  // Settings
   buffer.push(settings.das & 0xFF, (settings.das >> 8) & 0xFF);
   buffer.push(settings.arr & 0xFF, (settings.arr >> 8) & 0xFF);
   buffer.push(settings.sdf & 0xFF);
   buffer.push(settings.lockDelay & 0xFF, (settings.lockDelay >> 8) & 0xFF);
-  
   let flags = 0;
-  if (settings.dasCancel)  flags |= 1;
-  if (settings.socd)       flags |= 2;
-  if (settings.dasCarry)   flags |= 4;
+  if (settings.dasCancel) flags |= 1;
+  if (settings.socd)      flags |= 2;
+  if (settings.dasCarry)  flags |= 4;
   if (settings.attackEnabled) flags |= 8;
-  buffer.push(flags);
+  buffer.push(flags, settings.attackDifficulty, settings.attackStraightness, settings.attackIntervalMin, settings.attackIntervalMax, settings.attackLinesMin, settings.attackLinesMax);
 
-  buffer.push(settings.attackDifficulty);
-  buffer.push(settings.attackStraightness);
-  buffer.push(settings.attackIntervalMin);
-  buffer.push(settings.attackIntervalMax);
-  buffer.push(settings.attackLinesMin);
-  buffer.push(settings.attackLinesMax);
-
-  // 4. MapCode
+  // MapCode
   const mcBytes = new TextEncoder().encode(mapCode || '');
   buffer.push(mcBytes.length & 0xFF, (mcBytes.length >> 8) & 0xFF);
   buffer.push(...mcBytes);
 
-  // 5. Events
+  // Events (All events included for safety)
   let lastFrame = 0;
   for (const e of events) {
     const df = e.f - lastFrame;
-    const typeIdx = e.t === 'keydown' ? 0 : 1;
     const actionIdx = ACTION_MAP.indexOf(e.d);
     if (actionIdx === -1) continue;
+    const typeIdx = e.t === 'keydown' ? 0 : 1;
+    const typeAction = (actionIdx << 1) | typeIdx;
 
-    const typeAction = (actionIdx << 1) | typeIdx; // 4 bits (0-15)
-
-    // 1バイト目: [typeAction: 4bit | df_low: 4bit]
-    // dfが15以上なら追加バイトを使う
     if (df < 15) {
       buffer.push((typeAction << 4) | df);
     } else {
       buffer.push((typeAction << 4) | 15);
-      // 残りのdfを可変長で書く (7bitずつ)
       let remain = df - 15;
       while (remain >= 0x80) {
         buffer.push((remain & 0x7F) | 0x80);
@@ -76,27 +63,44 @@ export function encodeReplay(replay) {
     lastFrame = e.f;
   }
 
-  const uint8 = new Uint8Array(buffer);
-  const binString = Array.from(uint8, byte => String.fromCharCode(byte)).join("");
-  return btoa(binString)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  const rawUint8 = new Uint8Array(buffer);
+  const uncompressedLen = rawUint8.length;
+  
+  // --- 圧縮処理 ---
+  const cs = new CompressionStream('deflate');
+  const writer = cs.writable.getWriter();
+  writer.write(rawUint8);
+  writer.close();
+  const compressedBuffer = await new Response(cs.readable).arrayBuffer();
+  const compressedUint8 = new Uint8Array(compressedBuffer);
+  const compressedLen = compressedUint8.length;
+
+  console.log(`[Replay Compression] Uncompressed: ${uncompressedLen} bytes, Compressed: ${compressedLen} bytes (Ratio: ${((compressedLen / uncompressedLen) * 100).toFixed(1)}%)`);
+
+  const binString = Array.from(compressedUint8, byte => String.fromCharCode(byte)).join("");
+  return btoa(binString).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 /**
- * バイナリ形式から復元する
+ * 圧縮された文字列から復元する
  */
-export function decodeReplay(str) {
+export async function decodeReplay(str) {
   try {
     const binString = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
-    const uint8 = new Uint8Array(binString.length);
-    for (let i = 0; i < binString.length; i++) uint8[i] = binString.charCodeAt(i);
+    const compressedUint8 = new Uint8Array(binString.length);
+    for (let i = 0; i < binString.length; i++) compressedUint8[i] = binString.charCodeAt(i);
+
+    // --- 解凍処理 ---
+    const ds = new DecompressionStream('deflate');
+    const writer = ds.writable.getWriter();
+    writer.write(compressedUint8);
+    writer.close();
+    const decompressedBuffer = await new Response(ds.readable).arrayBuffer();
+    const uint8 = new Uint8Array(decompressedBuffer);
 
     let offset = 0;
     const version = uint8[offset++];
-    if (version === 1) return decodeV1(uint8); // 互換性
-    if (version !== 2) throw new Error('Unsupported version');
+    if (version !== 4) throw new Error('Unsupported version or corrupt data');
 
     const seed = new Uint32Array(uint8.slice(offset, offset + 4).buffer)[0];
     offset += 4;
@@ -106,13 +110,11 @@ export function decodeReplay(str) {
     settings.arr = uint8[offset++] | (uint8[offset++] << 8);
     settings.sdf = uint8[offset++];
     settings.lockDelay = uint8[offset++] | (uint8[offset++] << 8);
-    
     const flags = uint8[offset++];
-    settings.dasCancel  = !!(flags & 1);
-    settings.socd       = !!(flags & 2);
-    settings.dasCarry   = !!(flags & 4);
+    settings.dasCancel = !!(flags & 1);
+    settings.socd      = !!(flags & 2);
+    settings.dasCarry  = !!(flags & 4);
     settings.attackEnabled = !!(flags & 8);
-
     settings.attackDifficulty = uint8[offset++];
     settings.attackStraightness = uint8[offset++];
     settings.attackIntervalMin = uint8[offset++];
@@ -130,10 +132,8 @@ export function decodeReplay(str) {
       const first = uint8[offset++];
       const typeAction = first >> 4;
       let df = first & 0x0F;
-
       if (df === 15) {
-        let shift = 0;
-        let val = 0;
+        let shift = 0, val = 0;
         while (true) {
           const byte = uint8[offset++];
           val |= (byte & 0x7F) << shift;
@@ -142,15 +142,11 @@ export function decodeReplay(str) {
         }
         df = 15 + val;
       }
-
-      const typeIdx = typeAction & 1;
-      const actionIdx = typeAction >> 1;
-
       currentFrame += df;
       events.push({
         f: currentFrame,
-        t: typeIdx === 0 ? 'keydown' : 'keyup',
-        d: ACTION_MAP[actionIdx]
+        t: (typeAction & 1) === 0 ? 'keydown' : 'keyup',
+        d: ACTION_MAP[typeAction >> 1]
       });
     }
 
@@ -159,31 +155,4 @@ export function decodeReplay(str) {
     console.error('Failed to decode replay:', e);
     return null;
   }
-}
-
-// 以前のJSON形式(V1)のデコードロジック（互換性用）
-function decodeV1(uint8) {
-  const json = new TextDecoder().decode(uint8);
-  const data = JSON.parse(json);
-  const [version, seed, mapCode, sArr, eArr] = data;
-  const settings = {};
-  SETTING_KEYS.forEach((k, i) => {
-    const v = sArr[i];
-    if (k === 'dasCancel' || k === 'socd' || k === 'dasCarry' || k === 'attackEnabled') {
-      settings[k] = !!v;
-    } else {
-      settings[k] = v;
-    }
-  });
-  const events = [];
-  let currentFrame = 0;
-  for (let i = 0; i < eArr.length; i += 2) {
-    const df = eArr[i];
-    const typeAction = eArr[i + 1];
-    const typeIdx = typeAction & 1;
-    const actionIdx = typeAction >> 1;
-    currentFrame += df;
-    events.push({ f: currentFrame, t: typeIdx === 0 ? 'keydown' : 'keyup', d: ACTION_MAP[actionIdx] });
-  }
-  return { seed, mapCode, settings, events };
 }
