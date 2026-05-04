@@ -15,16 +15,13 @@ export class Recorder {
     this.data.events.push({ f: frame, t: type, d: data });
   }
 
+  // NOTE: localStorageへの保存は行わない方針のため、saveメソッドは空にするか削除検討
   save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+    // 互換性のために残すが何もしない
   }
 }
 
+// NOTE: localStorageからの読み込みは行わない方針
 export function loadLastReplay() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return null;
 }

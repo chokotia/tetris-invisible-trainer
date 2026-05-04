@@ -4,6 +4,7 @@ import { Renderer } from '../renderer.js';
 import { PIECES } from '../core/piece.js';
 import { applyMapCode } from '../core/mapcode.js';
 import { loadLastReplay } from './recorder.js';
+import { decodeReplay, encodeReplay } from './sharing.js';
 
 const BLOCK = 30;
 const NEXT_COUNT = 5;
@@ -23,7 +24,11 @@ function drawPiecePreview(canvas, type) {
 }
 
 function init() {
-  const replay = loadLastReplay();
+  const params = new URLSearchParams(window.location.search);
+  const dataParam = params.get('d');
+  
+  let replay = dataParam ? decodeReplay(dataParam) : null;
+
   const statusEl = document.getElementById('status');
 
   if (!replay) {
@@ -43,7 +48,23 @@ function init() {
   const seedEl       = document.getElementById('seed-val');
   const playPauseBtn = document.getElementById('play-pause-btn');
   const restartBtn   = document.getElementById('restart-btn');
+  const shareBtn     = document.getElementById('share-btn');
   const speedSel     = document.getElementById('speed-sel');
+
+  shareBtn.onclick = () => {
+    const code = encodeReplay(replay);
+    const url = new URL(window.location.origin + window.location.pathname);
+    url.searchParams.set('d', code);
+    
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      const originalText = shareBtn.textContent;
+      shareBtn.textContent = 'コピー完了！';
+      setTimeout(() => shareBtn.textContent = originalText, 2000);
+    }).catch(err => {
+      alert('コピーに失敗しました: ' + err);
+    });
+  };
+
   const nextCanvases = Array.from({ length: NEXT_COUNT }, (_, i) =>
     document.getElementById(`next${i}`)
   );
@@ -71,7 +92,7 @@ function init() {
       eventIdx,
       gameSnap:  game.snapshot(),
       inputSnap: input.snapshot(),
-      undoStack: [...undoStack],  // 浅いコピー(中のsnapshotは不変)
+      undoStack: [...undoStack],
       pieceUndo,
     });
   }
@@ -112,25 +133,21 @@ function init() {
     undoStack = [];
     pieceUndo = game.snapshot();
     snapshots = [];
-    takeSnapshot();  // frame=0 の初期スナップショット
+    takeSnapshot();
     playPauseBtn.textContent = '一時停止';
 
     // スキップ処理
-    const params = new URLSearchParams(window.location.search);
     const skipN = parseInt(params.get('n'), 10) || 0;
     if (skipN > 0) {
       if (!cachedMoveFrames) cachedMoveFrames = findMoveFrames();
       const targetFrame = cachedMoveFrames[Math.max(0, cachedMoveFrames.length - 1 - skipN)] || 0;
       if (targetFrame > 0) {
-        // targetFrame まで早送り (snapshotsを貯めながら)
         while (frame < targetFrame) step();
       }
     }
   }
 
   function findMoveFrames() {
-    // 現在の replay データを元に、どのフレームでロック(pushUndo)が発生するかをスキャンする
-    // 重い処理に見えるが、描画を伴わないため一瞬で終わる
     const tempGame = new Game({
       seed,
       lockDelayFrames: msToFrames(settings.lockDelay),
@@ -185,7 +202,7 @@ function init() {
         if (tempInput.justPressed('undo') && tempUndoStack.length > 0) {
           tempGame.restore(tempUndoStack.pop());
           tempPieceUndo = tempGame.snapshot();
-          moves.pop(); // undoしたら最後の手を除去
+          moves.pop();
         }
         if (tempInput.justPressed('harddrop')) {
           moves.push(f);
@@ -205,9 +222,7 @@ function init() {
     return moves;
   }
 
-  // main.js のループ本体と同じロジック (retry/retryPrev/openReplayは録画に出ない想定)
   function step() {
-    // 録画範囲を超えたら進行を止める (最後のイベントを処理した次のフレームで停止)
     if (frame > lastEventFrame) {
       if (!paused && !scrubbing) {
         paused = true;
@@ -215,7 +230,6 @@ function init() {
       }
       return;
     }
-    // 録画時点の input._frame と一致させるため、frame++ / update より前に適用する
     while (eventIdx < events.length && events[eventIdx].f <= frame) {
       const ev = events[eventIdx++];
       if (ev.t === 'keydown') input.keyDown(ev.d);
@@ -272,11 +286,10 @@ function init() {
   function rewindTo(target) {
     target = Math.max(0, target);
     if (target >= frame) return;
-    // 目標以下の最大スナップショットを探す(snapshotsはframe昇順)
     let idx = snapshots.length - 1;
     while (idx > 0 && snapshots[idx].frame > target) idx--;
     restoreSnapshot(snapshots[idx]);
-    snapshots.length = idx + 1;  // 復元したsnap以降は無効化
+    snapshots.length = idx + 1;
     while (frame < target) step();
   }
 
@@ -290,7 +303,6 @@ function init() {
     drawPiecePreview(holdCanvas, game.held);
   }
 
-  // --- スクラブ(早送り/巻戻し)状態管理 ---
   const heldDir = { left: false, right: false };
   let scrubPrevPaused = false;
   let scrubbing = false;
@@ -305,9 +317,9 @@ function init() {
     const wasScrubbing = scrubbing;
     scrubbing = getScrubDir() !== 0;
     if (!wasScrubbing && scrubbing) {
-      scrubPrevPaused = paused;  // スクラブ開始時の状態を保存
+      scrubPrevPaused = paused;
     } else if (wasScrubbing && !scrubbing) {
-      paused = scrubPrevPaused;  // スクラブ終了で復元
+      paused = scrubPrevPaused;
       playPauseBtn.textContent = paused ? '再生' : '一時停止';
     }
   }
@@ -336,7 +348,7 @@ function init() {
   });
 
   document.addEventListener('keydown', e => {
-    if (e.repeat) return;  // ブラウザ自動リピートは無視
+    if (e.repeat) return;
     if (e.code === 'Space') {
       e.preventDefault();
       playPauseBtn.click();

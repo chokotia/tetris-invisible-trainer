@@ -4,6 +4,7 @@ import { Renderer } from './renderer.js';
 import { PIECES } from './core/piece.js';
 import { loadSettings, saveSettings } from './settings.js';
 import { Recorder } from './replay/recorder.js';
+import { encodeReplay } from './replay/sharing.js';
 import { applyMapCode } from './core/mapcode.js';
 
 const BLOCK = 30;
@@ -25,19 +26,14 @@ function drawPiecePreview(canvas, type) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   if (!type) return;
   const blocks = PIECES[type].blocks[0];
-  
-  // Calculate bounding box to center the piece
   const minX = Math.min(...blocks.map(([x]) => x));
   const maxX = Math.max(...blocks.map(([x]) => x));
   const minY = Math.min(...blocks.map(([, y]) => y));
   const maxY = Math.max(...blocks.map(([, y]) => y));
-  
   const pieceWidth = (maxX - minX + 1) * BLOCK;
   const pieceHeight = (maxY - minY + 1) * BLOCK;
-  
   const offsetX = (canvas.width - pieceWidth) / 2 - minX * BLOCK;
   const offsetY = (canvas.height - pieceHeight) / 2 - minY * BLOCK;
-
   ctx.fillStyle = PIECES[type].color;
   for (const [x, y] of blocks) {
     ctx.fillRect(x * BLOCK + offsetX, y * BLOCK + offsetY, BLOCK, BLOCK);
@@ -53,7 +49,6 @@ function buildKeyMap(keys) {
 
 function init() {
   const settings = loadSettings();
-
   let practice = loadPractice();
   practice.sessionSeed = (Math.random() * 0xFFFFFFFF) >>> 0;
   practice.counter = 0;
@@ -113,13 +108,12 @@ function init() {
       REPLAY_SETTING_KEYS.map(k => [k, settings[k]])
     );
     recorder = new Recorder({ seed, mapCode: practice.mapCode || '', settings: replaySettings });
-    recorder.save();
     return g;
   }
 
   let game = newGame();
   const undoStack = [];
-  let pieceUndo = game.snapshot(); // 現在のミノが出現した瞬間のスナップショット
+  let pieceUndo = game.snapshot();
 
   const pushUndo = () => {
     undoStack.push(pieceUndo);
@@ -152,28 +146,24 @@ function init() {
   document.addEventListener('keydown', e => {
     const shifted = (e.shiftKey && e.code !== 'ShiftLeft' && e.code !== 'ShiftRight')
       ? 'Shift+' + e.code : null;
-    // Shift+コードが明示的にマップされていればそちらを優先、なければ plain コードにフォールバック
     const code = (shifted && KEY_MAP[shifted]) ? shifted : e.code;
     const action = KEY_MAP[code];
     if (!action) return;
     e.preventDefault();
     if (action === 'openReplay') {
-      window.open(`replay.html?n=${settings.replaySkipN}`, '_blank');
+      const code = encodeReplay(recorder.data);
+      window.open(`replay.html?d=${code}&n=${settings.replaySkipN}`, '_blank');
       return;
     }
-
     input.keyDown(action);
     recorder.record(frame, 'keydown', action);
-    recorder.save();
   });
 
   document.addEventListener('keyup', e => {
-    let recorded = false;
     const a1 = KEY_MAP[e.code];
-    if (a1 && a1 !== 'openReplay') { input.keyUp(a1); recorder.record(frame, 'keyup', a1); recorded = true; }
+    if (a1 && a1 !== 'openReplay') { input.keyUp(a1); recorder.record(frame, 'keyup', a1); }
     const a2 = KEY_MAP['Shift+' + e.code];
-    if (a2 && a2 !== 'openReplay') { input.keyUp(a2); recorder.record(frame, 'keyup', a2); recorded = true; }
-    if (recorded) recorder.save();
+    if (a2 && a2 !== 'openReplay') { input.keyUp(a2); recorder.record(frame, 'keyup', a2); }
   });
 
   function restart(delta = 0) {
@@ -186,7 +176,6 @@ function init() {
     frame = 0;
     input.reset();
     updatePracticeUI();
-
     if (settings.autoInvisible) {
       settings.invisible = true;
       renderer.invisible = true;
@@ -199,11 +188,9 @@ function init() {
   function loop() {
     frame++;
     input.update(frame);
-
     if (!game.isGameOver) {
       if (input.justPressed('left')  || input.repeat('left'))  game.moveLeft();
       if (input.justPressed('right') || input.repeat('right')) game.moveRight();
-
       if (input.pressed('down')) {
         for (let i = 0; i < settings.sdf; i++) {
           const y = game.current.y;
@@ -211,37 +198,30 @@ function init() {
           if (game.current.y === y) break;
         }
       }
-
       if (input.justPressed('rotateCW'))  game.rotateCW();
       if (input.justPressed('rotateCCW')) game.rotateCCW();
       if (input.justPressed('rotate180')) game.rotate180();
-
       if (input.justPressed('hold')) {
         game.hold();
-        pieceUndo = game.snapshot(); // ホールドで別ミノが出たので更新（スタックには積まない）
+        pieceUndo = game.snapshot();
       }
-
       if (input.justPressed('harddrop')) {
         pushUndo();
         game.hardDrop();
         pieceUndo = game.snapshot();
         if (!settings.dasCarry) input.resetDas();
       }
-
       if (input.justPressed('undo') && undoStack.length > 0) {
         game.restore(undoStack.pop());
         pieceUndo = game.snapshot();
       }
-
       if (input.justPressed('toggleInvisible')) {
         settings.invisible = !settings.invisible;
         renderer.invisible = settings.invisible;
         saveSettings(settings);
       }
-
       if (input.justPressed('retry'))     restart(+1);
       if (input.justPressed('retryPrev')) restart(-1);
-
       const locked = game.tick();
       if (locked) {
         pushUndo();
@@ -251,8 +231,6 @@ function init() {
       renderer.draw(game);
       scoreEl.textContent = game.score;
       linesEl.textContent = game.linesCleared;
-
-      // Update state indicator
       const boardState = game.board.getBoardState();
       if (boardState === 'red') {
         stateIndicator.style.backgroundColor = 'red';
@@ -261,18 +239,13 @@ function init() {
       } else {
         stateIndicator.style.backgroundColor = 'transparent';
       }
-
       for (let i = 0; i < NEXT_COUNT; i++)
         drawPiecePreview(nextCanvases[i], game.next[i]);
       drawPiecePreview(holdCanvas, game.held);
-
       if (game.isGameOver) gameoverEl.classList.add('show');
     }
-
     requestAnimationFrame(loop);
   }
-
   requestAnimationFrame(loop);
 }
-
 init();
