@@ -133,6 +133,11 @@ function init() {
     socd: settings.socd,
   });
   const attackCanvas = document.getElementById('attack-gauge');
+  if (settings.autoInvisible) {
+    settings.invisible = true;
+    saveSettings(settings);
+  }
+
   const renderer = new Renderer(canvas, { attackCanvas });
   renderer.invisible = !!settings.invisible;
   let KEY_MAP = buildKeyMap(settings.keys);
@@ -184,6 +189,7 @@ function init() {
     if (settings.autoInvisible) {
       settings.invisible = true;
       renderer.invisible = true;
+      saveSettings(settings);
     }
   }
 
