@@ -107,9 +107,9 @@ test('getBoardState: オーバーハング（到達可能な穴）はyellow', ()
   // ##.
   // #..
   // ###
-  board.set(0, 18, 'X'); board.set(1, 18, 'X');
-  board.set(0, 19, 'X'); 
-  board.set(0, 20, 'X'); board.set(1, 20, 'X'); board.set(2, 20, 'X');
+  board.set(0, 18, 'I'); board.set(1, 18, 'I');
+  board.set(0, 19, 'I'); 
+  board.set(0, 20, 'I'); board.set(1, 20, 'I'); board.set(2, 20, 'I');
   // (1, 19) は (2, 19) から到達可能
   assert.equal(board.getBoardState(), 'yellow');
 });
@@ -119,9 +119,38 @@ test('getBoardState: 閉じられた穴はred', () => {
   // ###
   // #.#
   // ###
-  board.set(0, 18, 'X'); board.set(1, 18, 'X'); board.set(2, 18, 'X');
-  board.set(0, 19, 'X');                        board.set(2, 19, 'X');
-  board.set(0, 20, 'X'); board.set(1, 20, 'X'); board.set(2, 20, 'X');
+  board.set(0, 18, 'I'); board.set(1, 18, 'I'); board.set(2, 18, 'I');
+  board.set(0, 19, 'I');                        board.set(2, 19, 'I');
+  board.set(0, 20, 'I'); board.set(1, 20, 'I'); board.set(2, 20, 'I');
   assert.equal(board.getBoardState(), 'red');
 });
+
+test('getBoardState: 下部のせり上がり（純粋なガベージ）は判定から除外される', () => {
+  const board = new Board(10, 20);
+  
+  // ガベージを2行追加（穴は3列目）
+  board.pushGarbage(2, 3);
+  
+  // ガベージの穴の上にブロックを置いても、それはガベージ行なので無視されるべき
+  board.set(3, 17, 'I'); 
+  
+  assert.equal(board.getBoardState(), 'none');
+});
+
+test('getBoardState: ガベージとプレイヤーのブロックが混在する場合は判定に含まれる', () => {
+  const board = new Board(10, 20);
+  
+  // ガベージを2行追加
+  board.pushGarbage(2, 3); // Row 18, 19
+  
+  // ガベージの行（最下行）にプレイヤーがブロックを置く
+  board.set(0, 19, 'I'); // これにより19行目は「純粋なガベージ」ではなくなる
+  
+  // 18行目（ガベージだった行）の特定のセルを空にして、その上にプレイヤーがブロックを置く
+  board.set(0, 18, null); 
+  board.set(0, 17, 'I'); // (0, 18) が穴（またはオーバーハング）になる
+  
+  assert.ok(board.getBoardState() !== 'none');
+});
+
 

@@ -51,6 +51,20 @@ export class Board {
   }
 
   getBoardState() {
+    // 0. Determine garbage boundary (pure garbage rows at the bottom)
+    let garbageBoundary = this.rows;
+    for (let y = this.rows - 1; y >= 0; y--) {
+      let hasPlayerBlock = false;
+      let hasGarbage = false;
+      for (let x = 0; x < this.cols; x++) {
+        const cell = this._cells[y][x];
+        if (cell !== null && cell !== 'X') hasPlayerBlock = true;
+        if (cell === 'X') hasGarbage = true;
+      }
+      if (hasPlayerBlock) break;
+      if (hasGarbage) garbageBoundary = y;
+    }
+
     // 1. Flood fill to find reachable empty cells from the top
     const reachable = Array.from({ length: this.rows }, () => Array(this.cols).fill(false));
     const queue = [];
@@ -83,7 +97,7 @@ export class Board {
 
     for (let x = 0; x < this.cols; x++) {
       let foundBlock = false;
-      for (let y = 0; y < this.rows; y++) {
+      for (let y = 0; y < garbageBoundary; y++) {
         if (this.get(x, y) !== null) {
           foundBlock = true;
         } else if (foundBlock) {
