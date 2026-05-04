@@ -5,7 +5,7 @@ import { PIECES } from './core/piece.js';
 import { loadSettings, saveSettings } from './settings.js';
 import { Recorder } from './replay/recorder.js';
 import { encodeReplay } from './replay/sharing.js';
-import { applyMapCode } from './core/mapcode.js';
+import { applyMapCode, generateProblemMapCode } from './core/mapcode.js';
 
 const BLOCK = 30;
 const NEXT_COUNT = 5;
@@ -85,7 +85,7 @@ function init() {
     'das', 'arr', 'sdf', 'lockDelay', 'dasCancel', 'socd', 'dasCarry', 
     'attackEnabled', 'attackDifficulty', 'attackStraightness', 
     'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax',
-    'invisible'
+    'invisible', 'problemType', 'problemGarbageType'
   ];
 
   let recorder;
@@ -103,12 +103,19 @@ function init() {
       attackLinesMin: settings.attackLinesMin,
       attackLinesMax: settings.attackLinesMax,
     });
-    if (practice.mapCode && practice.mapCode.length >= 200)
-      applyMapCode(g, practice.mapCode);
+
+    let mapCode = practice.mapCode || '';
+    if (settings.problemType && settings.problemType !== 'none') {
+      mapCode = generateProblemMapCode(seed, settings.problemType, settings.problemGarbageType);
+    }
+
+    if (mapCode && mapCode.length >= 200)
+      applyMapCode(g, mapCode);
+
     const replaySettings = Object.fromEntries(
       REPLAY_SETTING_KEYS.map(k => [k, settings[k]])
     );
-    recorder = new Recorder({ seed, mapCode: practice.mapCode || '', settings: replaySettings });
+    recorder = new Recorder({ seed, mapCode: mapCode, settings: replaySettings });
     return g;
   }
 

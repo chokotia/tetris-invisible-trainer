@@ -215,6 +215,35 @@
   </section>
 
   <section>
+    <h2>問題選択</h2>
+    <div class="row">
+      <div class="lbl">
+        問題タイプ
+        <small>初期盤面の状態を選択します</small>
+      </div>
+      <div class="ctrl">
+        <select id="problemType" style="width:160px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+          <option value="none">なし (空の盤面)</option>
+          <option value="3rows_random">3段 ランダム</option>
+          <option value="7rows_70%">7段 70%一致</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="lbl">
+        お邪魔ブロックの種類
+        <small>Invisibleモード時の見え方を選択します</small>
+      </div>
+      <div class="ctrl">
+        <select id="problemGarbageType" style="width:160px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+          <option value="8">見える灰色 (8)</option>
+          <option value="9">見えない灰色 (9)</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section>
     <h2>攻撃システム</h2>
     <div class="row">
       <div class="lbl">
@@ -481,6 +510,14 @@ initNum('attackLinesMin',    () => s.attackLinesMin,    v => s.attackLinesMin = 
 initNum('attackLinesMax',    () => s.attackLinesMax,    v => s.attackLinesMax = v);
 initNum('replaySkipN',       () => s.replaySkipN,       v => s.replaySkipN = v);
 
+const problemTypeSelect = document.getElementById('problemType');
+problemTypeSelect.value = s.problemType;
+problemTypeSelect.addEventListener('change', () => s.problemType = problemTypeSelect.value);
+
+const problemGarbageTypeSelect = document.getElementById('problemGarbageType');
+problemGarbageTypeSelect.value = s.problemGarbageType;
+problemGarbageTypeSelect.addEventListener('change', () => s.problemGarbageType = problemGarbageTypeSelect.value);
+
 // ── キー設定 ──────────────────────────────────
 const keyRowsEl = document.getElementById('key-rows');
 
@@ -566,6 +603,8 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   invisibleCheck.checked = s.invisible;
   autoInvisibleCheck.checked = s.autoInvisible;
   document.getElementById('replaySkipN').value = s.replaySkipN;
+  problemTypeSelect.value = s.problemType;
+  problemGarbageTypeSelect.value = s.problemGarbageType;
   updateAttackUI();
   renderKeyRows();
   checkConflicts();

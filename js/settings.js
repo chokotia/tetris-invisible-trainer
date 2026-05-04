@@ -19,6 +19,8 @@ export const DEFAULTS = {
   attackIntervalMax: 20,
   attackLinesMin: 1,
   attackLinesMax: 4,
+  problemType: 'none',
+  problemGarbageType: '9',
   keys: {
     left:      'ArrowLeft',
     right:     'ArrowRight',

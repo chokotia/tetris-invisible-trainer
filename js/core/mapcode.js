@@ -14,3 +14,51 @@ export function applyMapCode(game, mapCode) {
       game.board.set(c, r + 1, cell);
     }
 }
+
+export function generateProblemMapCode(seed, type, garbageChar = '9') {
+  if (type === 'none') return '';
+  
+  let state = seed >>> 0 || 1;
+  const rand = () => {
+    state ^= state << 13;
+    state ^= state >> 17;
+    state ^= state << 5;
+    return (state >>> 0) / 0xffffffff;
+  };
+
+  let rows = 0;
+  let consistency = 0;
+
+  if (type === '3rows_random') {
+    rows = 3;
+    consistency = 0;
+  } else if (type === '7rows_70%') {
+    rows = 7;
+    consistency = 0.7;
+  } else {
+    return '';
+  }
+
+  let map = Array(200).fill('0');
+  let lastHole = -1;
+
+  for (let r = 19; r >= 20 - rows; r--) {
+    let hole;
+    if (lastHole === -1) {
+      hole = Math.floor(rand() * 10);
+    } else if (rand() < consistency) {
+      hole = lastHole;
+    } else {
+      hole = Math.floor(rand() * 9);
+      if (hole >= lastHole) hole++;
+    }
+    lastHole = hole;
+
+    for (let c = 0; c < 10; c++) {
+      if (c !== hole) {
+        map[r * 10 + c] = garbageChar;
+      }
+    }
+  }
+  return map.join('');
+}
