@@ -191,6 +191,16 @@
         <input type="checkbox" id="invisible">
       </div>
     </div>
+
+    <div class="row">
+      <div class="lbl">
+        オートInvisible
+        <small>新しい問題（リトライ時など）で自動的にInvisibleをONにする</small>
+      </div>
+      <div class="ctrl">
+        <input type="checkbox" id="autoInvisible">
+      </div>
+    </div>
   </section>
 
   <section>
@@ -369,6 +379,10 @@ const invisibleCheck = document.getElementById('invisible');
 invisibleCheck.checked = s.invisible;
 invisibleCheck.addEventListener('change', () => s.invisible = invisibleCheck.checked);
 
+const autoInvisibleCheck = document.getElementById('autoInvisible');
+autoInvisibleCheck.checked = s.autoInvisible;
+autoInvisibleCheck.addEventListener('change', () => s.autoInvisible = autoInvisibleCheck.checked);
+
 const attackEnabledCheck = document.getElementById('attackEnabled');
 attackEnabledCheck.checked = s.attackEnabled;
 attackEnabledCheck.addEventListener('change', () => s.attackEnabled = attackEnabledCheck.checked);
@@ -538,6 +552,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   socdCheck.checked = s.socd;
   dasCarryCheck.checked = s.dasCarry;
   invisibleCheck.checked = s.invisible;
+  autoInvisibleCheck.checked = s.autoInvisible;
   updateAttackUI();
   renderKeyRows();
   checkConflicts();

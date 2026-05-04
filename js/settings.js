@@ -9,6 +9,7 @@ export const DEFAULTS = {
   socd: true,
   dasCarry: true,
   invisible: true,
+  autoInvisible: true,
   attackEnabled: true,
   attackDifficulty: 3,
   attackCustom: false,

@@ -180,6 +180,11 @@ function init() {
     frame = 0;
     input.reset();
     updatePracticeUI();
+
+    if (settings.autoInvisible) {
+      settings.invisible = true;
+      renderer.invisible = true;
+    }
   }
 
   document.getElementById('restart-btn').addEventListener('click', () => restart(0));
