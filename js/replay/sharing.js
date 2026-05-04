@@ -12,20 +12,20 @@ const SETTING_KEYS = [
 ];
 
 /**
- * バイナリ形式でリプレイをパックする (極限まで短くする)
+ * リプレイをバイナリ化し、さらに圧縮してエンコードする
  */
-export function encodeReplay(replay) {
+export async function encodeReplay(replay) {
   const { seed, mapCode, settings, events } = replay;
   const buffer = [];
 
-  // 1. Version (1 byte)
-  buffer.push(3); // Binary format version 3: support 5-bit action types and more flags
+  // V4: Binary + Deflate
+  buffer.push(4); 
 
-  // 2. Seed (4 bytes)
+  // Seed (4 bytes)
   const seedArr = new Uint32Array([seed]);
   buffer.push(...new Uint8Array(seedArr.buffer));
 
-  // 3. Settings
+  // Settings
   // ms系は2バイト, その他は1バイト, booleanはビットフラグ
   buffer.push(settings.das & 0xFF, (settings.das >> 8) & 0xFF);
   buffer.push(settings.arr & 0xFF, (settings.arr >> 8) & 0xFF);
@@ -47,12 +47,12 @@ export function encodeReplay(replay) {
   buffer.push(settings.attackLinesMin);
   buffer.push(settings.attackLinesMax);
 
-  // 4. MapCode
+  // MapCode
   const mcBytes = new TextEncoder().encode(mapCode || '');
   buffer.push(mcBytes.length & 0xFF, (mcBytes.length >> 8) & 0xFF);
   buffer.push(...mcBytes);
 
-  // 5. Events
+  // Events
   let lastFrame = 0;
   for (const e of events) {
     const df = e.f - lastFrame;
@@ -62,7 +62,7 @@ export function encodeReplay(replay) {
 
     const typeAction = (actionIdx << 1) | typeIdx; // Up to 5 bits (0-31)
 
-    // Version 3: [typeAction: 5bit | df_low: 3bit]
+    // Version 4 (based on V3 layout): [typeAction: 5bit | df_low: 3bit]
     if (df < 7) {
       buffer.push((typeAction << 3) | df);
     } else {
@@ -78,8 +78,21 @@ export function encodeReplay(replay) {
     lastFrame = e.f;
   }
 
-  const uint8 = new Uint8Array(buffer);
-  const binString = Array.from(uint8, byte => String.fromCharCode(byte)).join("");
+  const rawUint8 = new Uint8Array(buffer);
+  const uncompressedLen = rawUint8.length;
+  
+  // --- 圧縮処理 ---
+  const cs = new CompressionStream('deflate');
+  const writer = cs.writable.getWriter();
+  writer.write(rawUint8);
+  writer.close();
+  const compressedBuffer = await new Response(cs.readable).arrayBuffer();
+  const compressedUint8 = new Uint8Array(compressedBuffer);
+  const compressedLen = compressedUint8.length;
+
+  console.log(`[Replay Compression] Uncompressed: ${uncompressedLen} bytes, Compressed: ${compressedLen} bytes (Ratio: ${((compressedLen / uncompressedLen) * 100).toFixed(1)}%)`);
+
+  const binString = Array.from(compressedUint8, byte => String.fromCharCode(byte)).join("");
   return btoa(binString)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
@@ -87,17 +100,31 @@ export function encodeReplay(replay) {
 }
 
 /**
- * バイナリ形式から復元する
+ * 圧縮された文字列から復元する
  */
-export function decodeReplay(str) {
+export async function decodeReplay(str) {
   try {
     const binString = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
-    const uint8 = new Uint8Array(binString.length);
-    for (let i = 0; i < binString.length; i++) uint8[i] = binString.charCodeAt(i);
+    const rawUint8 = new Uint8Array(binString.length);
+    for (let i = 0; i < binString.length; i++) rawUint8[i] = binString.charCodeAt(i);
+
+    let uint8;
+    try {
+      // 圧縮されていると仮定して解凍を試みる
+      const ds = new DecompressionStream('deflate');
+      const writer = ds.writable.getWriter();
+      writer.write(rawUint8);
+      writer.close();
+      const decompressedBuffer = await new Response(ds.readable).arrayBuffer();
+      uint8 = new Uint8Array(decompressedBuffer);
+    } catch (e) {
+      // 解凍に失敗した場合は未圧縮（V1-V3）として扱う
+      uint8 = rawUint8;
+    }
 
     let offset = 0;
     const version = uint8[offset++];
-    if (version === 1) return decodeV1(uint8); // 互換性
+    if (version === 1) return decodeV1(uint8);
     
     const seed = new Uint32Array(uint8.slice(offset, offset + 4).buffer)[0];
     offset += 4;
@@ -149,7 +176,7 @@ export function decodeReplay(str) {
           df = 15 + val;
         }
       } else {
-        // Version 3: [typeAction: 5bit | df_low: 3bit]
+        // Version 3/4: [typeAction: 5bit | df_low: 3bit]
         typeAction = first >> 3;
         df = first & 0x07;
         if (df === 7) {

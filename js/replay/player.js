@@ -23,11 +23,11 @@ function drawPiecePreview(canvas, type) {
     ctx.fillRect(x * BLOCK + 1, (y - minY) * BLOCK + 1, BLOCK - 2, BLOCK - 2);
 }
 
-function init() {
+async function init() {
   const params = new URLSearchParams(window.location.search);
   const dataParam = params.get('d');
   
-  let replay = dataParam ? decodeReplay(dataParam) : null;
+  let replay = dataParam ? await decodeReplay(dataParam) : null;
 
   const statusEl = document.getElementById('status');
 
@@ -52,8 +52,8 @@ function init() {
   const shareBtn     = document.getElementById('share-btn');
   const speedSel     = document.getElementById('speed-sel');
 
-  shareBtn.onclick = () => {
-    const code = encodeReplay(replay);
+  shareBtn.onclick = async () => {
+    const code = await encodeReplay(replay);
     const url = new URL(window.location.origin + window.location.pathname);
     url.searchParams.set('d', code);
     
