@@ -51,8 +51,8 @@ function init() {
   const shareBtn     = document.getElementById('share-btn');
   const speedSel     = document.getElementById('speed-sel');
 
-  shareBtn.onclick = async () => {
-    const code = await encodeReplay(replay);
+  shareBtn.onclick = () => {
+    const code = encodeReplay(replay);
     const url = new URL(window.location.origin + window.location.pathname);
     url.searchParams.set('d', code);
     
