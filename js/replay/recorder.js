@@ -15,6 +15,10 @@ export class Recorder {
     this.data.events.push({ f: frame, t: type, d: data });
   }
 
+  recordUndo(frame, targetIdx, targetFrame, heldActions = []) {
+    this.data.events.push({ f: frame, t: 'undo', d: { targetIdx, targetFrame, heldActions } });
+  }
+
   // NOTE: localStorageへの保存は行わない方針のため、saveメソッドは空にするか削除検討
   save() {
     // 互換性のために残すが何もしない

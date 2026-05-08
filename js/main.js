@@ -120,13 +120,8 @@ function init() {
   }
 
   let game = newGame();
+  let frame = 0;
   const undoStack = [];
-  let pieceUndo = game.snapshot();
-
-  const pushUndo = () => {
-    undoStack.push(pieceUndo);
-    if (undoStack.length > 1000) undoStack.shift();
-  };
 
   const input = new Input({
     das: msToFrames(settings.das),
@@ -134,6 +129,21 @@ function init() {
     dasCancel: settings.dasCancel,
     socd: settings.socd,
   });
+
+  const getUndoSnapshot = () => ({
+    gameSnap: game.snapshot(),
+    inputSnap: input.snapshot(),
+    recorderIdx: recorder.data.events.length,
+    frame: frame,
+  });
+
+  let pieceUndo = getUndoSnapshot();
+
+  const pushUndo = () => {
+    undoStack.push(pieceUndo);
+    if (undoStack.length > 1000) undoStack.shift();
+  };
+
   const attackCanvas = document.getElementById('attack-gauge');
   if (settings.autoInvisible) {
     settings.invisible = true;
@@ -143,7 +153,6 @@ function init() {
   const renderer = new Renderer(canvas, { attackCanvas });
   renderer.invisible = !!settings.invisible;
   let KEY_MAP = buildKeyMap(settings.keys);
-  let frame = 0;
 
   function updatePracticeUI() {
     counterEl.textContent = `#${practice.counter}`;
@@ -180,9 +189,9 @@ function init() {
     savePractice(practice);
     game = newGame();
     undoStack.length = 0;
-    pieceUndo = game.snapshot();
-    gameoverEl.classList.remove('show');
     frame = 0;
+    pieceUndo = getUndoSnapshot();
+    gameoverEl.classList.remove('show');
     input.reset();
     updatePracticeUI();
     if (settings.autoInvisible) {
@@ -212,17 +221,20 @@ function init() {
       if (input.justPressed('rotate180')) game.rotate180();
       if (input.justPressed('hold')) {
         game.hold();
-        pieceUndo = game.snapshot();
+        pieceUndo = getUndoSnapshot();
       }
       if (input.justPressed('harddrop')) {
         pushUndo();
         game.hardDrop();
-        pieceUndo = game.snapshot();
+        pieceUndo = getUndoSnapshot();
         if (!settings.dasCarry) input.resetDas();
       }
       if (input.justPressed('undo') && undoStack.length > 0) {
-        game.restore(undoStack.pop());
-        pieceUndo = game.snapshot();
+        const snap = undoStack.pop();
+        game.restore(snap.gameSnap);
+        const heldActions = Array.from(input.snapshot().held.keys());
+        recorder.recordUndo(frame, snap.recorderIdx, snap.frame, heldActions);
+        pieceUndo = getUndoSnapshot();
       }
       if (input.justPressed('toggleInvisible')) {
         settings.invisible = !settings.invisible;
@@ -234,7 +246,7 @@ function init() {
       const locked = game.tick();
       if (locked) {
         pushUndo();
-        pieceUndo = game.snapshot();
+        pieceUndo = getUndoSnapshot();
         if (!settings.dasCarry) input.resetDas();
       }
       renderer.draw(game);

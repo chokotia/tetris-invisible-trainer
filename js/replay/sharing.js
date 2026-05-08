@@ -12,10 +12,62 @@ const SETTING_KEYS = [
 ];
 
 /**
+ * Undoマーカーを処理し、リプレイデータを「一本道」に整形する
+ */
+function flattenEvents(events) {
+  let processed = events.map(e => ({ ...e }));
+  
+  // 後ろから前に向かって処理することで、インデックスのズレを防ぐ
+  for (let i = processed.length - 1; i >= 0; i--) {
+    if (processed[i].t === 'undo') {
+      const undoEvent = processed[i];
+      const { targetIdx, targetFrame, heldActions } = undoEvent.d;
+      const undoFrame = undoEvent.f;
+      // 時間の差分を計算（負にならないようガード）
+      const gap = Math.max(0, undoFrame - targetFrame);
+
+      // 1. targetIdx から現在の undoイベントまでを削除
+      // (undoイベント自体も削除対象に含まれる)
+      processed.splice(targetIdx, i - targetIdx + 1);
+
+      // 2. 入力状態を「Undoした瞬間の指の状態」に強制同期するためのイベントを注入
+      const injections = [];
+      ACTION_MAP.forEach(action => {
+        // 特殊なアクションは除外
+        if (action === 'undo' || action === 'toggleInvisible' || action === 'openReplay') return;
+        
+        const isHeld = (heldActions || []).includes(action);
+        if (isHeld) {
+          // 押されているなら keydown
+          injections.push({ f: targetFrame, t: 'keydown', d: action });
+        } else {
+          // 離されているなら念のため keyup を入れて状態をクリーンにする
+          injections.push({ f: targetFrame, t: 'keyup', d: action });
+        }
+      });
+      processed.splice(targetIdx, 0, ...injections);
+
+      // 3. 以降の全イベントの時間を前詰めする
+      const shiftStart = targetIdx + injections.length;
+      for (let j = shiftStart; j < processed.length; j++) {
+        processed[j].f -= gap;
+      }
+
+      // 4. インデックスを調整（次は削除した領域より前をチェック）
+      i = targetIdx;
+    }
+  }
+  
+  // 最後に、もし 'undo' アクションそのものの keydown が残っていたら除去
+  return processed.filter(e => !(e.t === 'keydown' && e.d === 'undo'));
+}
+
+/**
  * リプレイをバイナリ化し、さらに圧縮してエンコードする
  */
 export async function encodeReplay(replay) {
-  const { seed, mapCode, settings, events } = replay;
+  const events = flattenEvents(replay.events);
+  const { seed, mapCode, settings } = replay;
   const buffer = [];
 
   // V4: Binary + Deflate
