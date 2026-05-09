@@ -12,6 +12,7 @@ export class Renderer {
     this.cols = cols;
     this.rows = rows;
     this.invisible = false;
+    this.peek = false;
     this.showGhost = true;
     this.showActivePiece = true;
     canvas.width = BLOCK * cols;
@@ -78,14 +79,14 @@ export class Renderer {
     for (let y = 0; y < this.rows; y++) {
       for (let x = 0; x < this.cols; x++) {
         const cell = game.board.get(x, y + 1);
-        if (cell && (!this.invisible || cell === 'X' || cell === '8')) {
+        if (cell && (!this.invisible || this.peek || cell === 'X' || cell === '8')) {
           this._drawBlock(x, y, this._color(cell));
         }
       }
     }
 
     // 4. Draw Ghost
-    if (this.showGhost) {
+    if (this.showGhost || this.peek) {
       const ghostY = game.ghostY();
       for (const [dx, dy] of game.current.blocks())
         this._drawGhostBlock(
@@ -95,7 +96,7 @@ export class Renderer {
     }
 
     // 5. Draw Current piece at FULL size
-    if (this.showActivePiece) {
+    if (this.showActivePiece || this.peek) {
       for (const [x, y] of game.current.absoluteBlocks())
         this._drawBlock(x, y - 1, this._color(game.current.type));
     }

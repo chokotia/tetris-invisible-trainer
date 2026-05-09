@@ -179,9 +179,7 @@ async function init() {
       pieceUndo = getUndoSnapshot();
     }
     if (input.justPressed('toggleInvisible')) {
-      settings.invisible = !settings.invisible;
-      renderer.invisible = settings.invisible;
-      saveSettings(settings);
+      renderer.peek = !renderer.peek;
     }
     if (input.justPressed('retry')) {
       if (activeResume) restart(0);
@@ -330,6 +328,7 @@ async function init() {
     pieceUndo = getUndoSnapshot();
     gameoverEl.classList.remove('show');
     input.reset();
+    renderer.peek = false;
     updatePracticeUI();
     if (settings.autoInvisible) {
       settings.invisible = true;
