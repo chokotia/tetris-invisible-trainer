@@ -12,6 +12,8 @@ export class Renderer {
     this.cols = cols;
     this.rows = rows;
     this.invisible = false;
+    this.showGhost = true;
+    this.showActivePiece = true;
     canvas.width = BLOCK * cols;
     canvas.height = BLOCK * rows;
     if (attackCanvas) {
@@ -83,16 +85,20 @@ export class Renderer {
     }
 
     // 4. Draw Ghost
-    const ghostY = game.ghostY();
-    for (const [dx, dy] of game.current.blocks())
-      this._drawGhostBlock(
-        dx + game.current.x,
-        dy + ghostY - 1
-      );
+    if (this.showGhost) {
+      const ghostY = game.ghostY();
+      for (const [dx, dy] of game.current.blocks())
+        this._drawGhostBlock(
+          dx + game.current.x,
+          dy + ghostY - 1
+        );
+    }
 
     // 5. Draw Current piece at FULL size
-    for (const [x, y] of game.current.absoluteBlocks())
-      this._drawBlock(x, y - 1, this._color(game.current.type));
+    if (this.showActivePiece) {
+      for (const [x, y] of game.current.absoluteBlocks())
+        this._drawBlock(x, y - 1, this._color(game.current.type));
+    }
 
     // 6. Draw Attack Gauge
     if (this.attackCtx) {

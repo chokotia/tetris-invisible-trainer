@@ -85,7 +85,8 @@ async function init() {
     'das', 'arr', 'sdf', 'lockDelay', 'dasCancel', 'socd', 'dasCarry', 
     'attackEnabled', 'attackDifficulty', 'attackStraightness', 
     'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax',
-    'invisible', 'problemType', 'problemGarbageType'
+    'invisible', 'autoInvisible', 'showGhost', 'showActivePiece', 
+    'problemType', 'problemGarbageType'
   ];
 
   let recorder;
@@ -206,6 +207,8 @@ async function init() {
 
   const renderer = new Renderer(canvas, { attackCanvas });
   renderer.invisible = !!settings.invisible;
+  renderer.showGhost = !!settings.showGhost;
+  renderer.showActivePiece = !!settings.showActivePiece;
   let KEY_MAP = buildKeyMap(settings.keys);
 
   function updatePracticeUI() {

@@ -115,7 +115,7 @@
   <h1>設定</h1>
 
   <section>
-    <h2>操作感</h2>
+    <h2>操作設定</h2>
 
     <div class="row">
       <div class="lbl">DAS <small>横入力の遅延（小さいほど即発動）</small></div>
@@ -181,7 +181,10 @@
         <input type="checkbox" id="dasCarry">
       </div>
     </div>
+  </section>
 
+  <section>
+    <h2>表示設定</h2>
     <div class="row">
       <div class="lbl">
         Invisibleモード
@@ -204,22 +207,44 @@
 
     <div class="row">
       <div class="lbl">
-        リプレイ開始位置
-        <small>リプレイ時、自動的に最後からn手目までスキップします</small>
+        ゴーストを表示
+        <small>落下地点のガイドを表示します</small>
       </div>
       <div class="ctrl">
-        <input type="number" id="replaySkipN" min="0" max="100" step="1" style="width:72px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
-        <span style="color:#888">手前</span>
+        <input type="checkbox" id="showGhost">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">
+        操作中のミノを表示
+        <small>現在操作しているミノを表示します（OFFで完全見えない化）</small>
+      </div>
+      <div class="ctrl">
+        <input type="checkbox" id="showActivePiece">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">
+        設置済みブロックの見た目
+        <small>Invisibleモード中の設置済みブロックの見え方</small>
+      </div>
+      <div class="ctrl">
+        <select id="problemGarbageType" style="width:160px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+          <option value="8">うっすら見える (灰色)</option>
+          <option value="9">完全に見えない</option>
+        </select>
       </div>
     </div>
   </section>
 
   <section>
-    <h2>問題選択</h2>
+    <h2>盤面・攻撃設定</h2>
     <div class="row">
       <div class="lbl">
-        問題タイプ
-        <small>初期盤面の状態を選択します</small>
+        初期盤面
+        <small>開始時の盤面の状態を選択します</small>
       </div>
       <div class="ctrl">
         <select id="problemType" style="width:160px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
@@ -229,80 +254,81 @@
         </select>
       </div>
     </div>
-    <div class="row">
-      <div class="lbl">
-        お邪魔ブロックの種類
-        <small>Invisibleモード時の見え方を選択します</small>
+
+    <div style="margin-top:20px; border-top: 1px dashed #333; padding-top: 20px;">
+      <div class="row">
+        <div class="lbl">
+          攻撃を有効にする
+          <small>プレイ中にシード値に基づいて攻撃が来ます</small>
+        </div>
+        <div class="ctrl">
+          <input type="checkbox" id="attackEnabled">
+        </div>
       </div>
-      <div class="ctrl">
-        <select id="problemGarbageType" style="width:160px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
-          <option value="8">見える灰色 (8)</option>
-          <option value="9">見えない灰色 (9)</option>
-        </select>
+      <div class="row">
+        <div class="lbl">
+          攻撃の激しさ
+          <small>1 (低) 〜 5 (高)</small>
+        </div>
+        <div class="ctrl">
+          <input type="range" id="attackDifficulty" min="1" max="5" step="1">
+          <span class="val" id="attackDifficulty-val"></span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="lbl">
+          カスタム設定を使用する
+          <small>ONにすると下の詳細項目を自由に編集できます</small>
+        </div>
+        <div class="ctrl">
+          <input type="checkbox" id="attackCustom">
+        </div>
+      </div>
+      <div class="row" id="row-straightness">
+        <div class="lbl">
+          直列度
+          <small>同じ穴が続く確率（0 = 毎回バラバラ）</small>
+        </div>
+        <div class="ctrl">
+          <input type="range" id="attackStraightness" min="0" max="100" step="5">
+          <span class="val" id="attackStraightness-val"></span>
+        </div>
+      </div>
+      <div class="row" id="row-interval">
+        <div class="lbl">
+          発生間隔 (ミノ数)
+          <small>攻撃が来るまでのミノ数（最小〜最大）</small>
+        </div>
+        <div class="ctrl">
+          <input type="number" id="attackIntervalMin" min="1" max="100" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+          <span style="color:#888">〜</span>
+          <input type="number" id="attackIntervalMax" min="1" max="100" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        </div>
+      </div>
+      <div class="row" id="row-lines">
+        <div class="lbl">
+          攻撃量 (ライン数)
+          <small>1回の攻撃のライン数（最小〜最大）</small>
+        </div>
+        <div class="ctrl">
+          <input type="number" id="attackLinesMin" min="1" max="20" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+          <span style="color:#888">〜</span>
+          <input type="number" id="attackLinesMax" min="1" max="20" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        </div>
       </div>
     </div>
   </section>
 
   <section>
-    <h2>攻撃システム</h2>
+    <h2>システム・その他</h2>
     <div class="row">
       <div class="lbl">
-        攻撃を有効にする
-        <small>プレイ中にシード値に基づいて攻撃が来ます</small>
+        リプレイ開始位置
+        <small>リプレイ時、自動的に最後からn手目までスキップします</small>
       </div>
       <div class="ctrl">
-        <input type="checkbox" id="attackEnabled">
-      </div>
-    </div>
-    <div class="row">
-      <div class="lbl">
-        攻撃の激しさ
-        <small>1 (低) 〜 5 (高)</small>
-      </div>
-      <div class="ctrl">
-        <input type="range" id="attackDifficulty" min="1" max="5" step="1">
-        <span class="val" id="attackDifficulty-val"></span>
-      </div>
-    </div>
-    <div class="row">
-      <div class="lbl">
-        カスタム設定を使用する
-        <small>ONにすると下の詳細項目を自由に編集できます</small>
-      </div>
-      <div class="ctrl">
-        <input type="checkbox" id="attackCustom">
-      </div>
-    </div>
-    <div class="row" id="row-straightness">
-      <div class="lbl">
-        直列度
-        <small>同じ穴が続く確率（0 = 毎回バラバラ）</small>
-      </div>
-      <div class="ctrl">
-        <input type="range" id="attackStraightness" min="0" max="100" step="5">
-        <span class="val" id="attackStraightness-val"></span>
-      </div>
-    </div>
-    <div class="row" id="row-interval">
-      <div class="lbl">
-        発生間隔 (ミノ数)
-        <small>攻撃が来るまでのミノ数（最小〜最大）</small>
-      </div>
-      <div class="ctrl">
-        <input type="number" id="attackIntervalMin" min="1" max="100" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
-        <span style="color:#888">〜</span>
-        <input type="number" id="attackIntervalMax" min="1" max="100" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
-      </div>
-    </div>
-    <div class="row" id="row-lines">
-      <div class="lbl">
-        攻撃量 (ライン数)
-        <small>1回の攻撃のライン数（最小〜最大）</small>
-      </div>
-      <div class="ctrl">
-        <input type="number" id="attackLinesMin" min="1" max="20" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
-        <span style="color:#888">〜</span>
-        <input type="number" id="attackLinesMax" min="1" max="20" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        <input type="number" id="replaySkipN" min="0" max="100" step="1" style="width:72px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        <span style="color:#888">手前</span>
       </div>
     </div>
   </section>
@@ -403,29 +429,20 @@ initSlider('sdf', 'sdf-val',
   () => s.sdf, v => s.sdf = v,
   v => v >= 20 ? `${v}  (最速)` : `${v}`);
 
-const dasCheck = document.getElementById('dasCancel');
-dasCheck.checked = s.dasCancel;
-dasCheck.addEventListener('change', () => s.dasCancel = dasCheck.checked);
+function initCheck(id, getter, setter) {
+  const el = document.getElementById(id);
+  el.checked = getter();
+  el.addEventListener('change', () => setter(el.checked));
+}
 
-const socdCheck = document.getElementById('socd');
-socdCheck.checked = s.socd;
-socdCheck.addEventListener('change', () => s.socd = socdCheck.checked);
-
-const dasCarryCheck = document.getElementById('dasCarry');
-dasCarryCheck.checked = s.dasCarry;
-dasCarryCheck.addEventListener('change', () => s.dasCarry = dasCarryCheck.checked);
-
-const invisibleCheck = document.getElementById('invisible');
-invisibleCheck.checked = s.invisible;
-invisibleCheck.addEventListener('change', () => s.invisible = invisibleCheck.checked);
-
-const autoInvisibleCheck = document.getElementById('autoInvisible');
-autoInvisibleCheck.checked = s.autoInvisible;
-autoInvisibleCheck.addEventListener('change', () => s.autoInvisible = autoInvisibleCheck.checked);
-
-const attackEnabledCheck = document.getElementById('attackEnabled');
-attackEnabledCheck.checked = s.attackEnabled;
-attackEnabledCheck.addEventListener('change', () => s.attackEnabled = attackEnabledCheck.checked);
+initCheck('dasCancel', () => s.dasCancel, v => s.dasCancel = v);
+initCheck('socd', () => s.socd, v => s.socd = v);
+initCheck('dasCarry', () => s.dasCarry, v => s.dasCarry = v);
+initCheck('invisible', () => s.invisible, v => s.invisible = v);
+initCheck('autoInvisible', () => s.autoInvisible, v => s.autoInvisible = v);
+initCheck('showGhost', () => s.showGhost, v => s.showGhost = v);
+initCheck('showActivePiece', () => s.showActivePiece, v => s.showActivePiece = v);
+initCheck('attackEnabled', () => s.attackEnabled, v => s.attackEnabled = v);
 
 const attackCustomCheck = document.getElementById('attackCustom');
 const attackDifficultySlider = document.getElementById('attackDifficulty');
@@ -500,7 +517,7 @@ function initNum(id, getter, setter) {
   const inp = document.getElementById(id);
   inp.value = getter();
   inp.addEventListener('input', () => {
-    setter(Number(inp.value) || 1);
+    setter(Number(inp.value) || 0);
   });
 }
 
@@ -510,13 +527,14 @@ initNum('attackLinesMin',    () => s.attackLinesMin,    v => s.attackLinesMin = 
 initNum('attackLinesMax',    () => s.attackLinesMax,    v => s.attackLinesMax = v);
 initNum('replaySkipN',       () => s.replaySkipN,       v => s.replaySkipN = v);
 
-const problemTypeSelect = document.getElementById('problemType');
-problemTypeSelect.value = s.problemType;
-problemTypeSelect.addEventListener('change', () => s.problemType = problemTypeSelect.value);
+function initSelect(id, getter, setter) {
+  const el = document.getElementById(id);
+  el.value = getter();
+  el.addEventListener('change', () => setter(el.value));
+}
 
-const problemGarbageTypeSelect = document.getElementById('problemGarbageType');
-problemGarbageTypeSelect.value = s.problemGarbageType;
-problemGarbageTypeSelect.addEventListener('change', () => s.problemGarbageType = problemGarbageTypeSelect.value);
+initSelect('problemType', () => s.problemType, v => s.problemType = v);
+initSelect('problemGarbageType', () => s.problemGarbageType, v => s.problemGarbageType = v);
 
 // ── キー設定 ──────────────────────────────────
 const keyRowsEl = document.getElementById('key-rows');
@@ -589,6 +607,7 @@ document.getElementById('save-btn').addEventListener('click', () => {
 
 document.getElementById('reset-btn').addEventListener('click', () => {
   s = structuredClone(DEFAULTS);
+  // UIの再同期
   document.getElementById('das').value = s.das;
   document.getElementById('das-val').textContent = frameHint(s.das);
   document.getElementById('arr').value = s.arr;
@@ -597,14 +616,20 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('lockDelay-val').textContent = frameHint(s.lockDelay);
   document.getElementById('sdf').value = s.sdf;
   document.getElementById('sdf-val').textContent = `${s.sdf}  (最速)`;
-  dasCheck.checked = s.dasCancel;
-  socdCheck.checked = s.socd;
-  dasCarryCheck.checked = s.dasCarry;
-  invisibleCheck.checked = s.invisible;
-  autoInvisibleCheck.checked = s.autoInvisible;
+  document.getElementById('dasCancel').checked = s.dasCancel;
+  document.getElementById('socd').checked = s.socd;
+  document.getElementById('dasCarry').checked = s.dasCarry;
+  document.getElementById('invisible').checked = s.invisible;
+  document.getElementById('autoInvisible').checked = s.autoInvisible;
+  document.getElementById('showGhost').checked = s.showGhost;
+  document.getElementById('showActivePiece').checked = s.showActivePiece;
+  document.getElementById('problemGarbageType').value = s.problemGarbageType;
+  document.getElementById('problemType').value = s.problemType;
+  document.getElementById('attackEnabled').checked = s.attackEnabled;
+  document.getElementById('attackDifficulty').value = s.attackDifficulty;
+  document.getElementById('attackCustom').checked = s.attackCustom;
   document.getElementById('replaySkipN').value = s.replaySkipN;
-  problemTypeSelect.value = s.problemType;
-  problemGarbageTypeSelect.value = s.problemGarbageType;
+  
   updateAttackUI();
   renderKeyRows();
   checkConflicts();
