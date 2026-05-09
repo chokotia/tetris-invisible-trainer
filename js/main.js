@@ -85,7 +85,7 @@ async function init() {
     'das', 'arr', 'sdf', 'lockDelay', 'dasCancel', 'socd', 'dasCarry', 
     'attackEnabled', 'attackDifficulty', 'attackStraightness', 
     'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax',
-    'invisible', 'autoInvisible', 'showGhost', 'showActivePiece', 
+    'invisible', 'showGhost', 'showActivePiece', 
     'problemType', 'problemGarbageType'
   ];
 
@@ -198,10 +198,6 @@ async function init() {
   }
 
   const attackCanvas = document.getElementById('attack-gauge');
-  if (settings.autoInvisible) {
-    settings.invisible = true;
-    saveSettings(settings);
-  }
 
   const renderer = new Renderer(canvas, { attackCanvas });
   renderer.invisible = !!settings.invisible;
@@ -258,12 +254,6 @@ async function init() {
     pieceUndo = getUndoSnapshot();
     gameoverEl.classList.remove('show');
     updatePracticeUI();
-
-    if (settings.autoInvisible) {
-      settings.invisible = true;
-      renderer.invisible = true;
-      saveSettings(settings);
-    }
   }
 
   // URLパラメータからのレジューム処理
@@ -330,11 +320,6 @@ async function init() {
     input.reset();
     renderer.peek = false;
     updatePracticeUI();
-    if (settings.autoInvisible) {
-      settings.invisible = true;
-      renderer.invisible = true;
-      saveSettings(settings);
-    }
   }
 
   document.getElementById('restart-btn').addEventListener('click', () => restart(0));

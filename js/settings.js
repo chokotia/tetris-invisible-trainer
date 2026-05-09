@@ -9,7 +9,6 @@ export const DEFAULTS = {
   socd: true,
   dasCarry: true,
   invisible: true,
-  autoInvisible: true,
   showGhost: true,
   showActivePiece: true,
   replaySkipN: 0,

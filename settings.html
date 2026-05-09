@@ -197,16 +197,6 @@
 
     <div class="row">
       <div class="lbl">
-        オートInvisible
-        <small>新しい問題（リトライ時など）で自動的にInvisibleをONにする</small>
-      </div>
-      <div class="ctrl">
-        <input type="checkbox" id="autoInvisible">
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="lbl">
         ゴーストを表示
         <small>落下地点のガイドを表示します</small>
       </div>
@@ -439,7 +429,6 @@ initCheck('dasCancel', () => s.dasCancel, v => s.dasCancel = v);
 initCheck('socd', () => s.socd, v => s.socd = v);
 initCheck('dasCarry', () => s.dasCarry, v => s.dasCarry = v);
 initCheck('invisible', () => s.invisible, v => s.invisible = v);
-initCheck('autoInvisible', () => s.autoInvisible, v => s.autoInvisible = v);
 initCheck('showGhost', () => s.showGhost, v => s.showGhost = v);
 initCheck('showActivePiece', () => s.showActivePiece, v => s.showActivePiece = v);
 initCheck('attackEnabled', () => s.attackEnabled, v => s.attackEnabled = v);
@@ -620,7 +609,6 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('socd').checked = s.socd;
   document.getElementById('dasCarry').checked = s.dasCarry;
   document.getElementById('invisible').checked = s.invisible;
-  document.getElementById('autoInvisible').checked = s.autoInvisible;
   document.getElementById('showGhost').checked = s.showGhost;
   document.getElementById('showActivePiece').checked = s.showActivePiece;
   document.getElementById('problemGarbageType').value = s.problemGarbageType;
