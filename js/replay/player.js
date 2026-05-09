@@ -48,8 +48,17 @@ async function init() {
   const seedEl       = document.getElementById('seed-val');
   const playPauseBtn = document.getElementById('play-pause-btn');
   const restartBtn   = document.getElementById('restart-btn');
+  const resumeBtn    = document.getElementById('resume-btn');
   const undoBtn      = document.getElementById('undo-btn');
   const speedSel     = document.getElementById('speed-sel');
+
+  resumeBtn.onclick = () => {
+    const d = dataParam;
+    if (!d) return;
+    const url = `index.html?resume_d=${encodeURIComponent(d)}&resume_f=${frame}`;
+    console.log("Opening resume URL:", url);
+    window.open(url, '_blank');
+  };
 
   undoBtn.onclick = () => {
     if (!cachedMoveFrames) cachedMoveFrames = findMoveFrames();

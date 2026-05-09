@@ -4,7 +4,7 @@ import { Renderer } from './renderer.js';
 import { PIECES } from './core/piece.js';
 import { loadSettings, saveSettings } from './settings.js';
 import { Recorder } from './replay/recorder.js';
-import { encodeReplay } from './replay/sharing.js';
+import { encodeReplay, decodeReplay } from './replay/sharing.js';
 import { applyMapCode, generateProblemMapCode } from './core/mapcode.js';
 
 const BLOCK = 30;
@@ -47,11 +47,11 @@ function buildKeyMap(keys) {
   return map;
 }
 
-function init() {
+async function init() {
   const settings = loadSettings();
   let practice = loadPractice();
-  practice.sessionSeed = (Math.random() * 0xFFFFFFFF) >>> 0;
-  practice.counter = 0;
+  practice.sessionSeed = practice.sessionSeed || (Math.random() * 0xFFFFFFFF) >>> 0;
+  practice.counter = practice.counter || 0;
   savePractice(practice);
 
   const problemSeed = () => (practice.sessionSeed + practice.counter) >>> 0;
@@ -144,6 +144,60 @@ function init() {
     if (undoStack.length > 1000) undoStack.shift();
   };
 
+  function runFrameLogic(customSettings = null) {
+    if (game.isGameOver) return;
+    const currentSettings = customSettings || settings;
+
+    if (input.justPressed('left')  || input.repeat('left'))  game.moveLeft();
+    if (input.justPressed('right') || input.repeat('right')) game.moveRight();
+    if (input.pressed('down')) {
+      for (let i = 0; i < currentSettings.sdf; i++) {
+        const y = game.current.y;
+        game.softDrop();
+        if (game.current.y === y) break;
+      }
+    }
+    if (input.justPressed('rotateCW'))  game.rotateCW();
+    if (input.justPressed('rotateCCW')) game.rotateCCW();
+    if (input.justPressed('rotate180')) game.rotate180();
+    if (input.justPressed('hold')) {
+      game.hold();
+      pieceUndo = getUndoSnapshot();
+    }
+    if (input.justPressed('harddrop')) {
+      pushUndo();
+      game.hardDrop();
+      pieceUndo = getUndoSnapshot();
+      if (!currentSettings.dasCarry) input.resetDas();
+    }
+    if (input.justPressed('undo') && undoStack.length > 0) {
+      const snap = undoStack.pop();
+      game.restore(snap.gameSnap);
+      const heldActions = Array.from(input.snapshot().held.keys());
+      recorder.recordUndo(frame, snap.recorderIdx, snap.frame, heldActions);
+      pieceUndo = getUndoSnapshot();
+    }
+    if (input.justPressed('toggleInvisible')) {
+      settings.invisible = !settings.invisible;
+      renderer.invisible = settings.invisible;
+      saveSettings(settings);
+    }
+    if (input.justPressed('retry')) {
+      if (activeResume) restart(0);
+      else restart(+1);
+    }
+    if (input.justPressed('retryPrev')) {
+      if (activeResume) restart(0);
+      else restart(-1);
+    }
+    const locked = game.tick();
+    if (locked) {
+      pushUndo();
+      pieceUndo = getUndoSnapshot();
+      if (!currentSettings.dasCarry) input.resetDas();
+    }
+  }
+
   const attackCanvas = document.getElementById('attack-gauge');
   if (settings.autoInvisible) {
     settings.invisible = true;
@@ -160,7 +214,77 @@ function init() {
   }
   updatePracticeUI();
 
+  let activeResume = null;
+
+  function performResume() {
+    if (!activeResume) return;
+    const { replay, targetFrame } = activeResume;
+    console.log("Performing resume to frame:", targetFrame);
+
+    game = new Game({
+      seed: replay.seed,
+      lockDelayFrames: msToFrames(replay.settings.lockDelay),
+      attackEnabled: replay.settings.attackEnabled,
+      attackDifficulty: replay.settings.attackDifficulty,
+      attackStraightness: replay.settings.attackStraightness,
+      attackIntervalMin: replay.settings.attackIntervalMin,
+      attackIntervalMax: replay.settings.attackIntervalMax,
+      attackLinesMin: replay.settings.attackLinesMin,
+      attackLinesMax: replay.settings.attackLinesMax,
+    });
+    if (replay.mapCode) applyMapCode(game, replay.mapCode);
+    
+    recorder = new Recorder({ seed: replay.seed, mapCode: replay.mapCode, settings: replay.settings });
+    input.reset();
+    frame = 0;
+    undoStack.length = 0;
+
+    let ei = 0;
+    while (frame < targetFrame) {
+      while (ei < replay.events.length && replay.events[ei].f <= frame) {
+        const ev = replay.events[ei++];
+        if (ev.t === 'keydown') input.keyDown(ev.d);
+        else if (ev.t === 'keyup') input.keyUp(ev.d);
+        recorder.record(ev.f, ev.t, ev.d);
+      }
+      frame++;
+      input.update(frame);
+      // 再現中はリプレイ時の設定（SDFなど）を使用する
+      runFrameLogic(replay.settings);
+    }
+    game.resetCurrentPiece();
+    input.reset();
+    pieceUndo = getUndoSnapshot();
+    gameoverEl.classList.remove('show');
+    updatePracticeUI();
+
+    if (settings.autoInvisible) {
+      settings.invisible = true;
+      renderer.invisible = true;
+      saveSettings(settings);
+    }
+  }
+
+  // URLパラメータからのレジューム処理
+  const params = new URLSearchParams(window.location.search);
+  const resumeD = params.get('resume_d');
+  const resumeF = parseInt(params.get('resume_f'), 10);
+  if (resumeD && !isNaN(resumeF)) {
+    console.log("Resume params detected:", { resumeF });
+    decodeReplay(resumeD).then(replay => {
+      if (replay) {
+        activeResume = { replay, targetFrame: resumeF };
+        performResume();
+        // URLをきれいにする (デバッグのため一時的に無効化する場合はコメントアウト)
+        // window.history.replaceState({}, '', 'index.html');
+      } else {
+        console.error("Failed to decode resume replay data");
+      }
+    });
+  }
+
   document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
     const shifted = (e.shiftKey && e.code !== 'ShiftLeft' && e.code !== 'ShiftRight')
       ? 'Shift+' + e.code : null;
     const code = (shifted && KEY_MAP[shifted]) ? shifted : e.code;
@@ -178,6 +302,7 @@ function init() {
   });
 
   document.addEventListener('keyup', e => {
+    if (e.target.tagName === 'INPUT') return;
     const a1 = KEY_MAP[e.code];
     if (a1 && a1 !== 'openReplay') { input.keyUp(a1); recorder.record(frame, 'keyup', a1); }
     const a2 = KEY_MAP['Shift+' + e.code];
@@ -185,6 +310,15 @@ function init() {
   });
 
   function restart(delta = 0) {
+    if (delta !== 0) {
+      activeResume = null;
+    }
+
+    if (delta === 0 && activeResume) {
+      performResume();
+      return;
+    }
+
     practice.counter = Math.max(0, practice.counter + delta);
     savePractice(practice);
     game = newGame();
@@ -206,67 +340,27 @@ function init() {
   function loop() {
     frame++;
     input.update(frame);
-    if (!game.isGameOver) {
-      if (input.justPressed('left')  || input.repeat('left'))  game.moveLeft();
-      if (input.justPressed('right') || input.repeat('right')) game.moveRight();
-      if (input.pressed('down')) {
-        for (let i = 0; i < settings.sdf; i++) {
-          const y = game.current.y;
-          game.softDrop();
-          if (game.current.y === y) break;
-        }
-      }
-      if (input.justPressed('rotateCW'))  game.rotateCW();
-      if (input.justPressed('rotateCCW')) game.rotateCCW();
-      if (input.justPressed('rotate180')) game.rotate180();
-      if (input.justPressed('hold')) {
-        game.hold();
-        pieceUndo = getUndoSnapshot();
-      }
-      if (input.justPressed('harddrop')) {
-        pushUndo();
-        game.hardDrop();
-        pieceUndo = getUndoSnapshot();
-        if (!settings.dasCarry) input.resetDas();
-      }
-      if (input.justPressed('undo') && undoStack.length > 0) {
-        const snap = undoStack.pop();
-        game.restore(snap.gameSnap);
-        const heldActions = Array.from(input.snapshot().held.keys());
-        recorder.recordUndo(frame, snap.recorderIdx, snap.frame, heldActions);
-        pieceUndo = getUndoSnapshot();
-      }
-      if (input.justPressed('toggleInvisible')) {
-        settings.invisible = !settings.invisible;
-        renderer.invisible = settings.invisible;
-        saveSettings(settings);
-      }
-      if (input.justPressed('retry'))     restart(+1);
-      if (input.justPressed('retryPrev')) restart(-1);
-      const locked = game.tick();
-      if (locked) {
-        pushUndo();
-        pieceUndo = getUndoSnapshot();
-        if (!settings.dasCarry) input.resetDas();
-      }
-      renderer.draw(game);
-      scoreEl.textContent = game.score;
-      linesEl.textContent = game.linesCleared;
-      const boardState = game.board.getBoardState();
-      if (boardState === 'red') {
-        stateIndicator.style.backgroundColor = 'red';
-      } else if (boardState === 'yellow') {
-        stateIndicator.style.backgroundColor = 'yellow';
-      } else {
-        stateIndicator.style.backgroundColor = 'transparent';
-      }
-      for (let i = 0; i < NEXT_COUNT; i++)
-        drawPiecePreview(nextCanvases[i], game.next[i]);
-      drawPiecePreview(holdCanvas, game.held);
-      if (game.isGameOver) gameoverEl.classList.add('show');
+    runFrameLogic();
+    
+    renderer.draw(game);
+    scoreEl.textContent = game.score;
+    linesEl.textContent = game.linesCleared;
+    const boardState = game.board.getBoardState();
+    if (boardState === 'red') {
+      stateIndicator.style.backgroundColor = 'red';
+    } else if (boardState === 'yellow') {
+      stateIndicator.style.backgroundColor = 'yellow';
+    } else {
+      stateIndicator.style.backgroundColor = 'transparent';
     }
+    for (let i = 0; i < NEXT_COUNT; i++)
+      drawPiecePreview(nextCanvases[i], game.next[i]);
+    drawPiecePreview(holdCanvas, game.held);
+    if (game.isGameOver) gameoverEl.classList.add('show');
+    
+    updatePracticeUI();
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
 }
-init();
+init().catch(console.error);

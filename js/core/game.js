@@ -268,6 +268,15 @@ export class Game {
     this.current = next;
   }
 
+  resetCurrentPiece() {
+    this.current = new Piece(this.current.type, 0, SPAWN_X, SPAWN_Y);
+    this._gravityCounter = 0;
+    this._lockCounter = 0;
+    this._lockResets = 0;
+    this._isLanding = false;
+    this._lastMoveWasRotate = false;
+  }
+
   _tryMove(piece, isRotation = false) {
     if (!this._canPlace(piece)) return false;
     this.current = piece;
