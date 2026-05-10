@@ -47,7 +47,6 @@ async function init() {
   const frameEl      = document.getElementById('frame-val');
   const seedEl       = document.getElementById('seed-val');
   const playPauseBtn = document.getElementById('play-pause-btn');
-  const restartBtn   = document.getElementById('restart-btn');
   const undoBtn      = document.getElementById('undo-btn');
   const speedSel     = document.getElementById('speed-sel');
 
