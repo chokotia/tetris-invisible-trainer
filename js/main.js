@@ -85,6 +85,7 @@ async function init() {
     'das', 'arr', 'sdf', 'lockDelay', 'dasCancel', 'socd', 'dasCarry', 
     'attackEnabled', 'attackDifficulty', 'attackStraightness', 
     'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax',
+    'attackYellowDelay', 'attackRedDelay', 'attackFlashDelay',
     'invisible', 'showGhost', 'showActivePiece', 
     'problemType', 'problemGarbageType'
   ];
@@ -103,6 +104,9 @@ async function init() {
       attackIntervalMax: settings.attackIntervalMax,
       attackLinesMin: settings.attackLinesMin,
       attackLinesMax: settings.attackLinesMax,
+      attackYellowDelay: settings.attackYellowDelay,
+      attackRedDelay: settings.attackRedDelay,
+      attackFlashDelay: settings.attackFlashDelay,
     });
 
     let mapCode = practice.mapCode || '';
@@ -228,6 +232,9 @@ async function init() {
       attackIntervalMax: replay.settings.attackIntervalMax,
       attackLinesMin: replay.settings.attackLinesMin,
       attackLinesMax: replay.settings.attackLinesMax,
+      attackYellowDelay: replay.settings.attackYellowDelay,
+      attackRedDelay: replay.settings.attackRedDelay,
+      attackFlashDelay: replay.settings.attackFlashDelay,
     });
     if (replay.mapCode) applyMapCode(game, replay.mapCode);
     

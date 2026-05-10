@@ -306,8 +306,21 @@
           <input type="number" id="attackLinesMax" min="1" max="20" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
         </div>
       </div>
-    </div>
-  </section>
+      <div class="row" id="row-delays">
+        <div class="lbl">
+          上昇までの猶予 (ミノ数)
+          <small>黄→薄赤、薄赤→赤、赤→上昇 までのミノ数</small>
+        </div>
+        <div class="ctrl">
+          <input type="number" id="attackYellowDelay" min="0" max="20" step="1" style="width:50px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+          <span style="color:#888">/</span>
+          <input type="number" id="attackRedDelay" min="0" max="20" step="1" style="width:50px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+          <span style="color:#888">/</span>
+          <input type="number" id="attackFlashDelay" min="0" max="20" step="1" style="width:50px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        </div>
+      </div>
+      </div>
+      </section>
 
   <section>
     <h2>システム・その他</h2>
@@ -437,11 +450,11 @@ const attackCustomCheck = document.getElementById('attackCustom');
 const attackDifficultySlider = document.getElementById('attackDifficulty');
 
 const attackPresets = {
-  1: { straightness: 90, interval: [20, 40], lines: [1, 2] },
-  2: { straightness: 70, interval: [15, 30], lines: [1, 3] },
-  3: { straightness: 50, interval: [10, 20], lines: [1, 4] },
-  4: { straightness: 30, interval: [7, 15], lines: [2, 5] },
-  5: { straightness: 10, interval: [4, 8], lines: [3, 6] },
+  1: { straightness: 90, interval: [20, 40], lines: [1, 2], yellowDelay: 3, redDelay: 2, flashDelay: 2 },
+  2: { straightness: 70, interval: [15, 30], lines: [1, 3], yellowDelay: 3, redDelay: 2, flashDelay: 2 },
+  3: { straightness: 50, interval: [10, 20], lines: [1, 4], yellowDelay: 3, redDelay: 2, flashDelay: 2 },
+  4: { straightness: 30, interval: [7, 15], lines: [2, 5], yellowDelay: 3, redDelay: 2, flashDelay: 2 },
+  5: { straightness: 10, interval: [4, 8], lines: [3, 6], yellowDelay: 3, redDelay: 2, flashDelay: 2 },
 };
 
 function applyPreset(level) {
@@ -454,6 +467,9 @@ function applyPreset(level) {
   s.attackIntervalMax = p.interval[1];
   s.attackLinesMin = p.lines[0];
   s.attackLinesMax = p.lines[1];
+  s.attackYellowDelay = p.yellowDelay;
+  s.attackRedDelay = p.redDelay;
+  s.attackFlashDelay = p.flashDelay;
   
   // Update UI components
   document.getElementById('attackStraightness').value = s.attackStraightness;
@@ -462,6 +478,9 @@ function applyPreset(level) {
   document.getElementById('attackIntervalMax').value = s.attackIntervalMax;
   document.getElementById('attackLinesMin').value = s.attackLinesMin;
   document.getElementById('attackLinesMax').value = s.attackLinesMax;
+  document.getElementById('attackYellowDelay').value = s.attackYellowDelay;
+  document.getElementById('attackRedDelay').value = s.attackRedDelay;
+  document.getElementById('attackFlashDelay').value = s.attackFlashDelay;
 }
 
 function updateAttackUI() {
@@ -474,9 +493,9 @@ function updateAttackUI() {
   
   const detailIds = [
     'attackStraightness', 'attackIntervalMin', 'attackIntervalMax', 
-    'attackLinesMin', 'attackLinesMax'
+    'attackLinesMin', 'attackLinesMax', 'attackYellowDelay', 'attackRedDelay', 'attackFlashDelay'
   ];
-  const detailRows = ['row-straightness', 'row-interval', 'row-lines'];
+  const detailRows = ['row-straightness', 'row-interval', 'row-lines', 'row-delays'];
   
   detailIds.forEach(id => document.getElementById(id).disabled = !custom);
   detailRows.forEach(id => {
@@ -514,6 +533,9 @@ initNum('attackIntervalMin', () => s.attackIntervalMin, v => s.attackIntervalMin
 initNum('attackIntervalMax', () => s.attackIntervalMax, v => s.attackIntervalMax = v);
 initNum('attackLinesMin',    () => s.attackLinesMin,    v => s.attackLinesMin = v);
 initNum('attackLinesMax',    () => s.attackLinesMax,    v => s.attackLinesMax = v);
+initNum('attackYellowDelay', () => s.attackYellowDelay, v => s.attackYellowDelay = v);
+initNum('attackRedDelay',    () => s.attackRedDelay,    v => s.attackRedDelay = v);
+initNum('attackFlashDelay',   () => s.attackFlashDelay,  v => s.attackFlashDelay = v);
 initNum('replaySkipN',       () => s.replaySkipN,       v => s.replaySkipN = v);
 
 function initSelect(id, getter, setter) {
@@ -616,6 +638,9 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('attackEnabled').checked = s.attackEnabled;
   document.getElementById('attackDifficulty').value = s.attackDifficulty;
   document.getElementById('attackCustom').checked = s.attackCustom;
+  document.getElementById('attackYellowDelay').value = s.attackYellowDelay;
+  document.getElementById('attackRedDelay').value = s.attackRedDelay;
+  document.getElementById('attackFlashDelay').value = s.attackFlashDelay;
   document.getElementById('replaySkipN').value = s.replaySkipN;
   
   updateAttackUI();

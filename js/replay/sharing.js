@@ -70,8 +70,8 @@ export async function encodeReplay(replay) {
   const { seed, mapCode, settings } = replay;
   const buffer = [];
 
-  // V4: Binary + Deflate
-  buffer.push(4); 
+  // V5: Binary + Deflate + New Attack Delays
+  buffer.push(5); 
 
   // Seed (4 bytes)
   const seedArr = new Uint32Array([seed]);
@@ -98,6 +98,9 @@ export async function encodeReplay(replay) {
   buffer.push(settings.attackIntervalMax);
   buffer.push(settings.attackLinesMin);
   buffer.push(settings.attackLinesMax);
+  buffer.push(settings.attackYellowDelay ?? 3);
+  buffer.push(settings.attackRedDelay ?? 2);
+  buffer.push(settings.attackFlashDelay ?? 2);
 
   // MapCode
   const mcBytes = new TextEncoder().encode(mapCode || '');
@@ -202,6 +205,16 @@ export async function decodeReplay(str) {
     settings.attackIntervalMax = uint8[offset++];
     settings.attackLinesMin = uint8[offset++];
     settings.attackLinesMax = uint8[offset++];
+
+    if (version >= 5) {
+      settings.attackYellowDelay = uint8[offset++];
+      settings.attackRedDelay = uint8[offset++];
+      settings.attackFlashDelay = uint8[offset++];
+    } else {
+      settings.attackYellowDelay = 3;
+      settings.attackRedDelay = 2;
+      settings.attackFlashDelay = 2;
+    }
 
     const mcLen = uint8[offset++] | (uint8[offset++] << 8);
     const mapCode = new TextDecoder().decode(uint8.slice(offset, offset + mcLen));

@@ -20,6 +20,9 @@ export const DEFAULTS = {
   attackIntervalMax: 20,
   attackLinesMin: 1,
   attackLinesMax: 4,
+  attackYellowDelay: 3,
+  attackRedDelay: 2,
+  attackFlashDelay: 2,
   problemType: 'none',
   problemGarbageType: '9',
   keys: {

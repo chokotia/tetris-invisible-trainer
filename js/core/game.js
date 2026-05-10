@@ -24,7 +24,10 @@ export class Game {
     attackIntervalMin = 10,
     attackIntervalMax = 20,
     attackLinesMin = 1,
-    attackLinesMax = 4
+    attackLinesMax = 4,
+    attackYellowDelay = GARBAGE_YELLOW_DELAY,
+    attackRedDelay = GARBAGE_RED_DELAY,
+    attackFlashDelay = GARBAGE_FLASH_DELAY
   } = {}) {
     this.board = new Board();
     this._rng = new Randomizer(seed);
@@ -50,6 +53,9 @@ export class Game {
     this.attackIntervalMax = attackIntervalMax;
     this.attackLinesMin = attackLinesMin;
     this.attackLinesMax = attackLinesMax;
+    this.attackYellowDelay = attackYellowDelay;
+    this.attackRedDelay = attackRedDelay;
+    this.attackFlashDelay = attackFlashDelay;
 
     this.combo = -1;
     this.b2b = false;
@@ -187,7 +193,7 @@ export class Game {
         this._lastGarbageHole = hole;
       }
       
-      this.garbageQueue.push({ lines, hole, type: 'yellow', delay: GARBAGE_YELLOW_DELAY });
+      this.garbageQueue.push({ lines, hole, type: 'yellow', delay: this.attackYellowDelay });
     }
   }
 
@@ -216,14 +222,14 @@ export class Game {
         g.delay--;
         if (g.delay <= 0) {
           g.type = 'red';
-          g.delay = GARBAGE_RED_DELAY;
+          g.delay = this.attackRedDelay;
         }
       } else if (g.type === 'red') {
         if (cleared === 0) {
           g.delay--;
           if (g.delay <= 0) {
             g.type = 'flashing';
-            g.delay = GARBAGE_FLASH_DELAY;
+            g.delay = this.attackFlashDelay;
           }
         }
       } else if (g.type === 'flashing') {

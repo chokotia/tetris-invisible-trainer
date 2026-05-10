@@ -125,6 +125,9 @@ async function init() {
       attackIntervalMax: settings.attackIntervalMax,
       attackLinesMin: settings.attackLinesMin,
       attackLinesMax: settings.attackLinesMax,
+      attackYellowDelay: settings.attackYellowDelay,
+      attackRedDelay: settings.attackRedDelay,
+      attackFlashDelay: settings.attackFlashDelay,
     });
     if (mapCode && mapCode.length >= 200) applyMapCode(game, mapCode);
     input = new Input({
@@ -167,6 +170,9 @@ async function init() {
       attackIntervalMax: settings.attackIntervalMax,
       attackLinesMin: settings.attackLinesMin,
       attackLinesMax: settings.attackLinesMax,
+      attackYellowDelay: settings.attackYellowDelay,
+      attackRedDelay: settings.attackRedDelay,
+      attackFlashDelay: settings.attackFlashDelay,
     });
     if (mapCode && mapCode.length >= 200) applyMapCode(tempGame, mapCode);
     const tempInput = new Input({
