@@ -323,15 +323,46 @@
       </section>
 
   <section>
-    <h2>システム・その他</h2>
+    <h2>システム・シード設定</h2>
     <div class="row">
       <div class="lbl">
-        リプレイ開始位置
-        <small>リプレイ時、自動的に最後からn手目までスキップします</small>
+        ブラウザ再読み込み時にシード更新
+        <small>ONにするとリロードのたびに新しい問題（シード）になります</small>
       </div>
       <div class="ctrl">
-        <input type="number" id="replaySkipN" min="0" max="100" step="1" style="width:72px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
-        <span style="color:#888">手前</span>
+        <input type="checkbox" id="autoRefreshSeed">
+      </div>
+    </div>
+
+    <div class="row" id="row-seed-manual">
+      <div class="lbl">
+        現在のシード値 / 問題番号 (#)
+        <small>シード値を変更すると出現順序が、番号を変更すると開始地点が変わります</small>
+      </div>
+      <div class="ctrl">
+        <input type="number" id="sessionSeed" style="width:110px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+        <span style="color:#888">#</span>
+        <input type="number" id="practiceCounter" min="0" step="1" style="width:60px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl"></div>
+      <div class="ctrl">
+        <button class="btn-secondary" id="refresh-seed-btn" style="padding: 6px 12px; font-size: 13px;">シード値を新しく生成</button>
+      </div>
+    </div>
+
+    <div style="margin-top:20px; border-top: 1px dashed #333; padding-top: 20px;">
+      <div class="row">
+        <div class="lbl">
+          リプレイ開始位置
+          <small>リプレイ時、自動的に最後からn手目までスキップします</small>
+        </div>
+        <div class="ctrl">
+          <input type="number" id="replaySkipN" min="0" max="100" step="1" style="width:72px;background:#1e1e1e;border:1px solid #444;color:#fff;font-family:monospace;font-size:14px;padding:4px 6px;border-radius:3px">
+          <span style="color:#888">手前</span>
+        </div>
       </div>
     </div>
   </section>
@@ -350,7 +381,7 @@
 </div>
 
 <script type="module">
-import { DEFAULTS, loadSettings, saveSettings } from './js/settings.js';
+import { DEFAULTS, loadSettings, saveSettings, loadPractice, savePractice } from './js/settings.js';
 
 const KEY_LABELS = {
   left:      '左移動',
@@ -395,6 +426,7 @@ function frameHint(ms) {
 
 // ── 状態 ──────────────────────────────────────
 let s = loadSettings();
+let p = loadPractice();
 let listening = null;  // currently rebinding action name
 
 // ── 数値入力（DAS/ARR/LockDelay ms） ──────────
@@ -445,6 +477,28 @@ initCheck('invisible', () => s.invisible, v => s.invisible = v);
 initCheck('showGhost', () => s.showGhost, v => s.showGhost = v);
 initCheck('showActivePiece', () => s.showActivePiece, v => s.showActivePiece = v);
 initCheck('attackEnabled', () => s.attackEnabled, v => s.attackEnabled = v);
+initCheck('autoRefreshSeed', () => s.autoRefreshSeed, v => s.autoRefreshSeed = v);
+
+const seedInp = document.getElementById('sessionSeed');
+const counterInp = document.getElementById('practiceCounter');
+const refreshBtn = document.getElementById('refresh-seed-btn');
+
+seedInp.value = p.sessionSeed || 0;
+counterInp.value = p.counter || 0;
+
+seedInp.addEventListener('input', () => {
+  p.sessionSeed = Number(seedInp.value) >>> 0;
+});
+counterInp.addEventListener('input', () => {
+  p.counter = Math.max(0, Number(counterInp.value) || 0);
+});
+
+refreshBtn.addEventListener('click', () => {
+  p.sessionSeed = (Math.random() * 0xFFFFFFFF) >>> 0;
+  p.counter = 0;
+  seedInp.value = p.sessionSeed;
+  counterInp.value = p.counter;
+});
 
 const attackCustomCheck = document.getElementById('attackCustom');
 const attackDifficultySlider = document.getElementById('attackDifficulty');
@@ -613,11 +667,14 @@ document.addEventListener('keydown', e => {
 // ── ボタン ────────────────────────────────────
 document.getElementById('save-btn').addEventListener('click', () => {
   saveSettings(s);
+  savePractice(p);
   location.href = 'index.html';
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
   s = structuredClone(DEFAULTS);
+  p = { sessionSeed: (Math.random() * 0xFFFFFFFF) >>> 0, counter: 0 };
+
   // UIの再同期
   document.getElementById('das').value = s.das;
   document.getElementById('das-val').textContent = frameHint(s.das);
@@ -642,6 +699,9 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('attackRedDelay').value = s.attackRedDelay;
   document.getElementById('attackFlashDelay').value = s.attackFlashDelay;
   document.getElementById('replaySkipN').value = s.replaySkipN;
+  document.getElementById('autoRefreshSeed').checked = s.autoRefreshSeed;
+  seedInp.value = p.sessionSeed;
+  counterInp.value = p.counter;
   
   updateAttackUI();
   renderKeyRows();

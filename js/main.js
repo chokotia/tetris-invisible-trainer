@@ -2,23 +2,13 @@ import { Game } from './core/game.js';
 import { Input } from './input.js';
 import { Renderer } from './renderer.js';
 import { PIECES } from './core/piece.js';
-import { loadSettings, saveSettings } from './settings.js';
+import { loadSettings, saveSettings, loadPractice, savePractice } from './settings.js';
 import { Recorder } from './replay/recorder.js';
 import { encodeReplay, decodeReplay } from './replay/sharing.js';
 import { applyMapCode, generateProblemMapCode } from './core/mapcode.js';
 
 const BLOCK = 30;
 const NEXT_COUNT = 5;
-const PRACTICE_KEY = 'tetris-practice';
-
-function loadPractice() {
-  try { return JSON.parse(localStorage.getItem(PRACTICE_KEY) || '{}'); }
-  catch { return {}; }
-}
-
-function savePractice(p) {
-  localStorage.setItem(PRACTICE_KEY, JSON.stringify(p));
-}
 
 function drawPiecePreview(canvas, type) {
   const ctx = canvas.getContext('2d');
@@ -50,8 +40,14 @@ function buildKeyMap(keys) {
 async function init() {
   const settings = loadSettings();
   let practice = loadPractice();
-  practice.sessionSeed = practice.sessionSeed || (Math.random() * 0xFFFFFFFF) >>> 0;
-  practice.counter = practice.counter || 0;
+  
+  if (settings.autoRefreshSeed) {
+    practice.sessionSeed = (Math.random() * 0xFFFFFFFF) >>> 0;
+    practice.counter = 0;
+  } else {
+    practice.sessionSeed = practice.sessionSeed || (Math.random() * 0xFFFFFFFF) >>> 0;
+    practice.counter = practice.counter || 0;
+  }
   savePractice(practice);
 
   const problemSeed = () => (practice.sessionSeed + practice.counter) >>> 0;
@@ -62,8 +58,6 @@ async function init() {
   const gameoverEl   = document.getElementById('gameover');
   const holdCanvas   = document.getElementById('hold');
   const counterEl    = document.getElementById('practice-counter');
-  const seedEl       = document.getElementById('practice-seed');
-  const mapCodeInput = document.getElementById('map-code');
   const stateIndicator = document.getElementById('state-indicator');
   const nextCanvases = Array.from({ length: NEXT_COUNT }, (_, i) =>
     document.getElementById(`next${i}`)
@@ -72,12 +66,6 @@ async function init() {
   holdCanvas.width  = BLOCK * 4;
   holdCanvas.height = BLOCK * 2;
   nextCanvases.forEach(c => { c.width = BLOCK * 4; c.height = BLOCK * 2; });
-
-  mapCodeInput.value = practice.mapCode || '';
-  mapCodeInput.addEventListener('input', () => {
-    practice.mapCode = mapCodeInput.value.trim();
-    savePractice(practice);
-  });
 
   const msToFrames = ms => Math.max(0, Math.round(ms * 60 / 1000));
 
@@ -211,7 +199,6 @@ async function init() {
 
   function updatePracticeUI() {
     counterEl.textContent = `#${practice.counter}`;
-    seedEl.textContent = `seed ${practice.sessionSeed}`;
   }
   updatePracticeUI();
 

@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'tetris-settings';
 
+export const PRACTICE_KEY = 'tetris-practice';
+
 export const DEFAULTS = {
   das: 117,   // ms (≈ 7f @ 60fps)
   arr: 0,     // ms (0 = instant)
@@ -11,6 +13,7 @@ export const DEFAULTS = {
   invisible: true,
   showGhost: true,
   showActivePiece: true,
+  autoRefreshSeed: false,
   replaySkipN: 0,
   attackEnabled: true,
   attackDifficulty: 3,
@@ -57,4 +60,13 @@ export function loadSettings() {
 
 export function saveSettings(s) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+}
+
+export function loadPractice() {
+  try { return JSON.parse(localStorage.getItem(PRACTICE_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+export function savePractice(p) {
+  localStorage.setItem(PRACTICE_KEY, JSON.stringify(p));
 }
