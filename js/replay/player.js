@@ -384,6 +384,9 @@ async function init() {
     } else if (e.code === 'Backspace') {
       e.preventDefault();
       undoBtn.click();
+    } else if (e.code === 'PageDown') {
+      e.preventDefault();
+      resumeBtn.click();
     }
   });
 
