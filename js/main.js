@@ -225,26 +225,45 @@ async function init() {
     });
     if (replay.mapCode) applyMapCode(game, replay.mapCode);
     
-    recorder = new Recorder({ seed: replay.seed, mapCode: replay.mapCode, settings: replay.settings });
+    const originalEvents = replay.events;
+    // シミュレーション中は記録を行わないようにダミーを置く
+    recorder = { record: () => {}, recordUndo: () => {}, data: { events: [] } };
     input.reset();
     frame = 0;
     undoStack.length = 0;
 
     let ei = 0;
     while (frame < targetFrame) {
-      while (ei < replay.events.length && replay.events[ei].f <= frame) {
-        const ev = replay.events[ei++];
+      while (ei < originalEvents.length && originalEvents[ei].f <= frame) {
+        const ev = originalEvents[ei++];
         if (ev.t === 'keydown') input.keyDown(ev.d);
         else if (ev.t === 'keyup') input.keyUp(ev.d);
-        recorder.record(ev.f, ev.t, ev.d);
       }
       frame++;
       input.update(frame);
       // 再現中はリプレイ時の設定（SDFなど）を使用する
       runFrameLogic(replay.settings);
     }
-    game.resetCurrentPiece();
+    // targetFrame時点での入力イベントも反映させておく
+    while (ei < originalEvents.length && originalEvents[ei].f <= targetFrame) {
+      const ev = originalEvents[ei++];
+      if (ev.t === 'keydown') input.keyDown(ev.d);
+      else if (ev.t === 'keyup') input.keyUp(ev.d);
+    }
+
+    // 本物のレコーダーを初期化し、targetFrameまでのイベントをコピー
+    recorder = new Recorder({ seed: replay.seed, mapCode: replay.mapCode, settings: replay.settings });
+    recorder.data.events = originalEvents.filter(ev => ev.f <= targetFrame);
+
+    // Stuck key 対策：シミュレーション時点で押されていたキーをKeyUpとして記録し、入力をリセット
+    // これにより、新しいプレイではキーが離された状態から始まり、リプレイもそれに追随する
+    const heldActions = Array.from(input.snapshot().held.keys());
+    for (const action of heldActions) {
+      recorder.record(targetFrame, 'keyup', action);
+    }
     input.reset();
+
+    game.resetCurrentPiece(); // 出現位置（一番上）から開始する
     pieceUndo = getUndoSnapshot();
     gameoverEl.classList.remove('show');
     updatePracticeUI();

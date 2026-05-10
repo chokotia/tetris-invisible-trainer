@@ -55,7 +55,16 @@ async function init() {
   resumeBtn.onclick = () => {
     const d = dataParam;
     if (!d) return;
-    const url = `index.html?resume_d=${encodeURIComponent(d)}&resume_f=${frame}`;
+    
+    // 現在のフレーム以前で、最後にミノが設置された（＝新しいミノが出現した）フレームを探す
+    if (!cachedMoveFrames) cachedMoveFrames = findMoveFrames();
+    let target = 0;
+    for (const f of cachedMoveFrames) {
+      if (f <= frame) target = f;
+      else break;
+    }
+
+    const url = `index.html?resume_d=${encodeURIComponent(d)}&resume_f=${target}`;
     console.log("Opening resume URL:", url);
     window.open(url, '_blank');
   };
