@@ -297,7 +297,10 @@ async function init() {
     e.preventDefault();
     if (action === 'openReplay') {
       encodeReplay(recorder.data).then(code => {
-        window.open(`replay.html?d=${code}&n=${settings.replaySkipN}`, '_blank');
+        const url = activeResume 
+          ? `replay.html?d=${code}&f=${activeResume.targetFrame}`
+          : `replay.html?d=${code}&n=${settings.replaySkipN}`;
+        window.open(url, '_blank');
       });
       return;
     }
