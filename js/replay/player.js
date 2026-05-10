@@ -48,11 +48,10 @@ async function init() {
   const seedEl       = document.getElementById('seed-val');
   const playPauseBtn = document.getElementById('play-pause-btn');
   const restartBtn   = document.getElementById('restart-btn');
-  const resumeBtn    = document.getElementById('resume-btn');
   const undoBtn      = document.getElementById('undo-btn');
   const speedSel     = document.getElementById('speed-sel');
 
-  resumeBtn.onclick = () => {
+  const resume = () => {
     const d = dataParam;
     if (!d) return;
     
@@ -386,7 +385,7 @@ async function init() {
       undoBtn.click();
     } else if (e.code === 'PageDown') {
       e.preventDefault();
-      resumeBtn.click();
+      resume();
     }
   });
 

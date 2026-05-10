@@ -58,6 +58,9 @@
       font-size: 13px;
       position: relative;
     }
+    #play-pause-btn {
+      min-width: 90px;
+    }
     #controls button, #controls select {
       background: #1e1e1e;
       border: 1px solid #444;
@@ -114,7 +117,6 @@
   <div id="controls">
     <button id="play-pause-btn">一時停止</button>
     <button id="undo-btn">1手戻る</button>
-    <button id="resume-btn" style="background:#442;border-color:#884;">ここからプレイ (PgDn)</button>
     <button id="restart-btn">最初から</button>
     <label>速度
       <select id="speed-sel">
@@ -129,7 +131,7 @@
     <span id="seed-val"></span>
   </div>
   <div style="margin-top:8px;color:#555;font-family:monospace;font-size:11px">
-    Space: 再生/停止 &nbsp; → (押下中): 早送り &nbsp; ← (押下中): 巻戻し &nbsp; PgDn: ここからプレイ
+    Space: 再生/停止 &nbsp; → (押下中): 早送り &nbsp; ← (押下中): 巻戻し &nbsp; Backspace: 1手戻る &nbsp; PgDn: ここからプレイ
   </div>
 </div>
 <script type="module" src="js/replay/player.js"></script>
