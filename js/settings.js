@@ -36,9 +36,9 @@ export const DEFAULTS = {
     rotateCCW: 'KeyZ',
     rotate180: 'KeyC',
     hold:      'ShiftLeft',
-    retry:     'KeyS',
-    nextProblem: 'KeyR',
-    prevProblem: 'Shift+KeyR',
+    retry:     'KeyR',
+    nextProblem: 'KeyN',
+    prevProblem: 'KeyB',
     undo:      'IntlYen',
     openReplay: 'PageDown',
     toggleInvisible: 'Digit1',
@@ -53,20 +53,29 @@ export function loadSettings() {
       ...saved,
       keys: { ...DEFAULTS.keys, ...(saved.keys || {}) },
     };
-    // Migration: the old 'retry' (Next) is now 'nextProblem', and 'retryPrev' (Prev) is 'prevProblem'.
-    // The new 'retry' is for actual retry (delta=0).
+    // Migration: 
+    // Old scheme: retry='KeyR' (Next), retryPrev='Shift+KeyR' (Prev)
+    // New scheme: nextProblem='KeyN', prevProblem='KeyB', retry='KeyR' (Restart)
     if (saved.keys) {
-      if (saved.keys.retry && !saved.keys.nextProblem) {
+      // If user customized 'retry' (old Next), migrate it to 'nextProblem' ONLY if it wasn't the old default 'KeyR'
+      if (saved.keys.retry && saved.keys.retry !== 'KeyR' && !saved.keys.nextProblem) {
         s.keys.nextProblem = saved.keys.retry;
-        // If we migrated the old 'retry' value to 'nextProblem', 
-        // we should reset 'retry' to its new default ('KeyS') unless it was already explicitly set to something else in a newer version
-        // (But since this is the version that introduces the change, we just reset it).
-        s.keys.retry = DEFAULTS.keys.retry;
       }
-      if (saved.keys.retryPrev && !saved.keys.prevProblem) {
+      // If user customized 'retryPrev' (old Prev), migrate it to 'prevProblem' ONLY if it wasn't the old default 'Shift+KeyR'
+      if (saved.keys.retryPrev && saved.keys.retryPrev !== 'Shift+KeyR' && !saved.keys.prevProblem) {
         s.keys.prevProblem = saved.keys.retryPrev;
       }
+      
+      // If the saved 'retry' was the old default 'KeyR', it now correctly maps to the NEW 'retry' (Restart) default.
+      // The new 'nextProblem' and 'prevProblem' will naturally take 'KeyN' and 'KeyB' from DEFAULTS.
     }
+    // Ensure only current keys exist
+    const currentKeys = {};
+    for (const k of Object.keys(DEFAULTS.keys)) {
+      currentKeys[k] = s.keys[k] || DEFAULTS.keys[k];
+    }
+    s.keys = currentKeys;
+
     return s;
   } catch {
     return structuredClone(DEFAULTS);
