@@ -299,7 +299,7 @@ async function init() {
       encodeReplay(recorder.data).then(code => {
         const url = activeResume 
           ? `replay.html?d=${code}&f=${activeResume.targetFrame}`
-          : `replay.html?d=${code}&n=${settings.replaySkipN}`;
+          : `replay.html?d=${code}`;
         window.open(url, '_blank');
       });
       return;

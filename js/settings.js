@@ -14,7 +14,6 @@ export const DEFAULTS = {
   showGhost: true,
   showActivePiece: true,
   autoRefreshSeed: false,
-  replaySkipN: 0,
   attackEnabled: true,
   attackDifficulty: 3,
   attackCustom: false,

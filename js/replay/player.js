@@ -159,16 +159,9 @@ async function init() {
 
     // スキップ処理
     const startFrame = parseInt(params.get('f'), 10) || 0;
-    const skipN = parseInt(params.get('n'), 10) || 0;
 
     if (startFrame > 0) {
       while (frame < startFrame) step();
-    } else if (skipN > 0) {
-      if (!cachedMoveFrames) cachedMoveFrames = findMoveFrames();
-      const targetFrame = cachedMoveFrames[Math.max(0, cachedMoveFrames.length - 1 - skipN)] || 0;
-      if (targetFrame > 0) {
-        while (frame < targetFrame) step();
-      }
     }
   }
 
