@@ -36,8 +36,9 @@ export const DEFAULTS = {
     rotateCCW: 'KeyZ',
     rotate180: 'KeyC',
     hold:      'ShiftLeft',
-    retry:     'KeyR',
-    retryPrev: 'Shift+KeyR',
+    retry:     'KeyS',
+    nextProblem: 'KeyR',
+    prevProblem: 'Shift+KeyR',
     undo:      'IntlYen',
     openReplay: 'PageDown',
     toggleInvisible: 'Digit1',
@@ -47,11 +48,26 @@ export const DEFAULTS = {
 export function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    return {
+    const s = {
       ...DEFAULTS,
       ...saved,
       keys: { ...DEFAULTS.keys, ...(saved.keys || {}) },
     };
+    // Migration: the old 'retry' (Next) is now 'nextProblem', and 'retryPrev' (Prev) is 'prevProblem'.
+    // The new 'retry' is for actual retry (delta=0).
+    if (saved.keys) {
+      if (saved.keys.retry && !saved.keys.nextProblem) {
+        s.keys.nextProblem = saved.keys.retry;
+        // If we migrated the old 'retry' value to 'nextProblem', 
+        // we should reset 'retry' to its new default ('KeyS') unless it was already explicitly set to something else in a newer version
+        // (But since this is the version that introduces the change, we just reset it).
+        s.keys.retry = DEFAULTS.keys.retry;
+      }
+      if (saved.keys.retryPrev && !saved.keys.prevProblem) {
+        s.keys.prevProblem = saved.keys.retryPrev;
+      }
+    }
+    return s;
   } catch {
     return structuredClone(DEFAULTS);
   }

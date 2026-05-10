@@ -173,13 +173,14 @@ async function init() {
     if (input.justPressed('toggleInvisible')) {
       renderer.peek = !renderer.peek;
     }
-    if (input.justPressed('retry')) {
-      if (activeResume) restart(0);
-      else restart(+1);
+    if (input.justPressed('nextProblem')) {
+      restart(+1);
     }
-    if (input.justPressed('retryPrev')) {
-      if (activeResume) restart(0);
-      else restart(-1);
+    if (input.justPressed('prevProblem')) {
+      restart(-1);
+    }
+    if (input.justPressed('retry')) {
+      restart(0);
     }
     const locked = game.tick();
     if (locked) {
