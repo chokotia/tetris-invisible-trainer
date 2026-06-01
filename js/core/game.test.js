@@ -98,3 +98,10 @@ test('isGameOverはゲームオーバー時にtrueになる', () => {
   g.hardDrop();
   assert.equal(g.isGameOver, true);
 });
+
+test('gravityFramesが0のとき、tickで落下しない', () => {
+  const g = new Game({ seed: 0, gravityFrames: 0 });
+  const prevY = g.current.y;
+  for (let i = 0; i < 100; i++) g.tick();
+  assert.equal(g.current.y, prevY);
+});

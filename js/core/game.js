@@ -17,6 +17,7 @@ const RISING_FRAMES = 20;       // せり上がり中の硬直フレーム数
 export class Game {
   constructor({ 
     seed, 
+    gravityFrames = GRAVITY_FRAMES,
     lockDelayFrames = LOCK_DELAY, 
     attackEnabled = false, 
     attackDifficulty = 2,
@@ -39,7 +40,7 @@ export class Game {
     this._lockCounter = 0;
     this._lockResets = 0;
     this._isLanding = false;
-    this.gravityFrames = GRAVITY_FRAMES;
+    this.gravityFrames = gravityFrames;
     this.lockDelayFrames = lockDelayFrames;
 
     this.held = null;
@@ -473,10 +474,12 @@ export class Game {
 
     if (canFall) {
       this._isLanding = false;
-      this._gravityCounter++;
-      if (this._gravityCounter >= this.gravityFrames) {
-        this._gravityCounter = 0;
-        this.current = below;
+      if (this.gravityFrames > 0) {
+        this._gravityCounter++;
+        if (this._gravityCounter >= this.gravityFrames) {
+          this._gravityCounter = 0;
+          this.current = below;
+        }
       }
     } else {
       this._isLanding = true;

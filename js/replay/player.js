@@ -125,6 +125,7 @@ async function init() {
   function reset() {
     game = new Game({
       seed,
+      gravityFrames: msToFrames(settings.gravity ?? 1000),
       lockDelayFrames: msToFrames(settings.lockDelay),
       attackEnabled: settings.attackEnabled,
       attackDifficulty: settings.attackDifficulty,
@@ -167,6 +168,7 @@ async function init() {
   function findMoveFrames() {
     const tempGame = new Game({
       seed,
+      gravityFrames: msToFrames(settings.gravity ?? 1000),
       lockDelayFrames: msToFrames(settings.lockDelay),
       attackEnabled: settings.attackEnabled,
       attackDifficulty: settings.attackDifficulty,

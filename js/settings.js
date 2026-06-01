@@ -6,6 +6,7 @@ export const DEFAULTS = {
   das: 117,   // ms (≈ 7f @ 60fps)
   arr: 0,     // ms (0 = instant)
   sdf: 1,
+  gravity: 1000, // ms (0 = off)
   lockDelay: 1000,  // ms (接地後ロックまでの猶予)
   dasCancel: true,
   socd: true,

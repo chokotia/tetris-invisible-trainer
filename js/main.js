@@ -70,7 +70,7 @@ async function init() {
   const msToFrames = ms => Math.max(0, Math.round(ms * 60 / 1000));
 
   const REPLAY_SETTING_KEYS = [
-    'das', 'arr', 'sdf', 'lockDelay', 'dasCancel', 'socd', 'dasCarry', 
+    'das', 'arr', 'sdf', 'gravity', 'lockDelay', 'dasCancel', 'socd', 'dasCarry', 
     'attackEnabled', 'attackDifficulty', 'attackStraightness', 
     'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax',
     'attackYellowDelay', 'attackRedDelay', 'attackFlashDelay',
@@ -84,6 +84,7 @@ async function init() {
     const seed = problemSeed();
     const g = new Game({ 
       seed, 
+      gravityFrames: msToFrames(settings.gravity),
       lockDelayFrames: msToFrames(settings.lockDelay),
       attackEnabled: settings.attackEnabled,
       attackDifficulty: settings.attackDifficulty,
@@ -212,6 +213,7 @@ async function init() {
 
     game = new Game({
       seed: replay.seed,
+      gravityFrames: msToFrames(replay.settings.gravity ?? 1000),
       lockDelayFrames: msToFrames(replay.settings.lockDelay),
       attackEnabled: replay.settings.attackEnabled,
       attackDifficulty: replay.settings.attackDifficulty,
