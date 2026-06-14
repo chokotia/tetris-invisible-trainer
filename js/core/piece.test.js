@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Piece, PIECES } from './piece.js';
+import { Piece, PIECES, getKicks } from './piece.js';
 
 test('7種類のピースが定義されている', () => {
   const types = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
@@ -108,4 +108,29 @@ test('rotationプロパティが正しく更新される', () => {
   assert.equal(p.rotatedCW().rotation, 1);
   assert.equal(p.rotatedCW().rotatedCW().rotation, 2);
   assert.equal(p.rotatedCCW().rotation, 3);
+});
+
+test('JLSZTの回転キック値がSRS(y-down)に準拠している', () => {
+  // 0->1 CW
+  // Standard SRS (y-up): (0,0), (-1,0), (-1,1), (0,-2), (-1,-2)
+  // y-down (invert Y): (0,0), (-1,0), (-1,-1), (0,2), (-1,2)
+  assert.deepEqual(getKicks('T', 0, 1), [[0,0],[-1,0],[-1,-1],[0,2],[-1,2]]);
+});
+
+test('Iの回転キック値がSRS(y-down)に準拠している', () => {
+  const expected = {
+    '0>1': [[0,0],[-2,0],[1,0],[-2,1],[1,-2]],
+    '1>2': [[0,0],[-1,0],[2,0],[-1,-2],[2,1]],
+    '2>3': [[0,0],[2,0],[-1,0],[2,-1],[-1,2]],
+    '3>0': [[0,0],[1,0],[-2,0],[1,2],[-2,-1]],
+    '0>3': [[0,0],[-1,0],[2,0],[-1,-2],[2,1]],
+    '3>2': [[0,0],[-2,0],[1,0],[-2,1],[1,-2]],
+    '2>1': [[0,0],[1,0],[-2,0],[1,2],[-2,-1]],
+    '1>0': [[0,0],[2,0],[-1,0],[2,-1],[-1,2]],
+  };
+
+  for (const [key, val] of Object.entries(expected)) {
+    const [from, to] = key.split('>').map(Number);
+    assert.deepEqual(getKicks('I', from, to), val, `Kicks for I ${key} should match`);
+  }
 });
