@@ -27,6 +27,9 @@ export const DEFAULTS = {
   attackRedDelay: 2,
   attackFlashDelay: 2,
   problemType: 'none',
+  problemCustom: false,
+  problemRows: 5,
+  problemStraightness: 50,
   problemGarbageType: '9',
   keys: {
     left:      'ArrowLeft',

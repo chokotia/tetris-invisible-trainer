@@ -254,6 +254,39 @@
       </div>
     </div>
 
+    <div class="row">
+      <div class="lbl">
+        カスタム設定を使用する
+        <small>ONにすると下の詳細項目を自由に編集できます</small>
+      </div>
+      <div class="ctrl">
+        <input type="checkbox" id="problemCustom">
+      </div>
+    </div>
+
+    <div id="problem-custom-settings" style="margin-left: 20px; border-left: 2px solid #333; padding-left: 15px; margin-bottom: 20px;">
+      <div class="row" id="row-problem-rows">
+        <div class="lbl">
+          段数
+          <small>初期盤面の高さ（1〜20段）</small>
+        </div>
+        <div class="ctrl">
+          <input type="range" id="problemRows" min="1" max="20" step="1">
+          <span class="val" id="problemRows-val"></span>
+        </div>
+      </div>
+      <div class="row" id="row-problem-straightness">
+        <div class="lbl">
+          直列度
+          <small>同じ穴が続く確率（0 = 毎回バラバラ）</small>
+        </div>
+        <div class="ctrl">
+          <input type="range" id="problemStraightness" min="0" max="100" step="10">
+          <span class="val" id="problemStraightness-val"></span>
+        </div>
+      </div>
+    </div>
+
     <div style="margin-top:20px; border-top: 1px dashed #333; padding-top: 20px;">
       <div class="row">
         <div class="lbl">
@@ -599,6 +632,36 @@ function initSelect(id, getter, setter) {
 initSelect('problemType', () => s.problemType, v => s.problemType = v);
 initSelect('problemGarbageType', () => s.problemGarbageType, v => s.problemGarbageType = v);
 
+function updateProblemUI() {
+  const custom = s.problemCustom;
+  const customSection = document.getElementById('problem-custom-settings');
+  customSection.style.display = custom ? 'block' : 'none';
+  
+  const problemTypeDropdown = document.getElementById('problemType');
+  problemTypeDropdown.disabled = custom;
+  problemTypeDropdown.parentElement.parentElement.style.opacity = custom ? 0.4 : 1;
+
+  if (custom) {
+    document.getElementById('problemRows').value = s.problemRows;
+    document.getElementById('problemRows-val').textContent = `${s.problemRows}段`;
+    document.getElementById('problemStraightness').value = s.problemStraightness;
+    document.getElementById('problemStraightness-val').textContent = `${s.problemStraightness}%`;
+  }
+}
+
+initCheck('problemCustom', () => s.problemCustom, v => {
+  s.problemCustom = v;
+  updateProblemUI();
+});
+
+initSlider('problemRows', 'problemRows-val',
+  () => s.problemRows, v => s.problemRows = v,
+  v => `${v}段`);
+
+initSlider('problemStraightness', 'problemStraightness-val',
+  () => s.problemStraightness, v => s.problemStraightness = v,
+  v => `${v}%`);
+
 // ── キー設定 ──────────────────────────────────
 const keyRowsEl = document.getElementById('key-rows');
 
@@ -692,6 +755,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('showActivePiece').checked = s.showActivePiece;
   document.getElementById('problemGarbageType').value = s.problemGarbageType;
   document.getElementById('problemType').value = s.problemType;
+  document.getElementById('problemCustom').checked = s.problemCustom;
   document.getElementById('attackEnabled').checked = s.attackEnabled;
   document.getElementById('attackDifficulty').value = s.attackDifficulty;
   document.getElementById('attackCustom').checked = s.attackCustom;
@@ -703,12 +767,14 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   counterInp.value = p.counter;
   
   updateAttackUI();
+  updateProblemUI();
   renderKeyRows();
   checkConflicts();
 });
 
 // ── 初期化 ────────────────────────────────────
 updateAttackUI();
+updateProblemUI();
 renderKeyRows();
 checkConflicts();
 </script>

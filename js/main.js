@@ -75,7 +75,7 @@ async function init() {
     'attackIntervalMin', 'attackIntervalMax', 'attackLinesMin', 'attackLinesMax',
     'attackYellowDelay', 'attackRedDelay', 'attackFlashDelay',
     'invisible', 'showGhost', 'showActivePiece', 
-    'problemType', 'problemGarbageType'
+    'problemType', 'problemCustom', 'problemGarbageType'
   ];
 
   let recorder;
@@ -99,8 +99,17 @@ async function init() {
     });
 
     let mapCode = practice.mapCode || '';
-    if (settings.problemType && settings.problemType !== 'none') {
-      mapCode = generateProblemMapCode(seed, settings.problemType, settings.problemGarbageType);
+    let problemOptions = null;
+    if (settings.problemCustom) {
+      problemOptions = { rows: settings.problemRows, consistency: settings.problemStraightness / 100 };
+    } else if (settings.problemType === '3rows_random') {
+      problemOptions = { rows: 3, consistency: 0 };
+    } else if (settings.problemType === '7rows_70%') {
+      problemOptions = { rows: 7, consistency: 0.7 };
+    }
+
+    if (problemOptions) {
+      mapCode = generateProblemMapCode(seed, problemOptions, settings.problemGarbageType);
     }
 
     if (mapCode && mapCode.length >= 200)

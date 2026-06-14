@@ -15,9 +15,9 @@ export function applyMapCode(game, mapCode) {
     }
 }
 
-export function generateProblemMapCode(seed, type, garbageChar = '9') {
-  if (type === 'none') return '';
-  
+export function generateProblemMapCode(seed, options, garbageChar = '9') {
+  if (!options || options.rows <= 0) return '';
+
   let state = seed >>> 0 || 1;
   const rand = () => {
     state ^= state << 13;
@@ -26,19 +26,7 @@ export function generateProblemMapCode(seed, type, garbageChar = '9') {
     return (state >>> 0) / 0xffffffff;
   };
 
-  let rows = 0;
-  let consistency = 0;
-
-  if (type === '3rows_random') {
-    rows = 3;
-    consistency = 0;
-  } else if (type === '7rows_70%') {
-    rows = 7;
-    consistency = 0.7;
-  } else {
-    return '';
-  }
-
+  const { rows, consistency } = options;
   let map = Array(200).fill('0');
   let lastHole = -1;
 
